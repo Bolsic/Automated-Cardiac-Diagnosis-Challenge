@@ -1,0 +1,76 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging and build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Data, model artifacts, and experiment outputs
+data/
+datasets/
+raw/
+processed/
+runs/
+logs/
+checkpoints/
+weights/
+models/
+outputs/
+predictions/
+results/
+wandb/
+mlruns/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+ACDC*
+
+# Medical imaging and large numeric artifacts
+*.nii
+*.nii.gz
+*.mha
+*.mhd
+*.nrrd
+*.dcm
+*.h5
+*.hdf5
+*.npz
+*.npy
+
