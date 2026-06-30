@@ -24,6 +24,10 @@ pip-wheel-metadata/
 
 # Jupyter
 .ipynb_checkpoints/
+.jupyter_data/
+.jupyter_runtime/
+.ipython/
+.mplconfig/
 
 # IDE and editor files
 .idea/
@@ -50,7 +54,8 @@ runs/
 logs/
 checkpoints/
 weights/
-models/
+saved_models/
+model_artifacts/
 outputs/
 predictions/
 results/
@@ -74,3 +79,5 @@ ACDC*
 *.npz
 *.npy
 
+# Project specific
+papers/
