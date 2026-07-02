@@ -1,6 +1,6 @@
 # ACDC Segmentation Project Guide
 
-This project trains PyTorch FCN-8 and 2D U-Net segmentation models on the 2D ACDC preprocessed dataset exported by `notebooks/acdc_paper_preprocessing.ipynb`.
+This project trains PyTorch FCN-8, 2D U-Net, and modified 2D U-Net segmentation models on the 2D ACDC preprocessed dataset exported by `notebooks/acdc_paper_preprocessing.ipynb`.
 
 ## 1. Environment Setup
 
@@ -80,7 +80,29 @@ If `num-workers 2` causes a multiprocessing/DataLoader error, use:
 source .venv/bin/activate && python scripts/train_unet2d.py --epochs 3 --batch-size 8 --num-workers 0 --run-dir runs/unet2d_3epoch_local
 ```
 
-## 5. Useful Training Options
+## 5. Start Modified 2D U-Net Training
+
+The modified 2D U-Net follows the paper's lighter decoder idea: each transposed-convolution upsampling layer outputs `num_classes` channels instead of a wide decoder feature map.
+
+Basic modified 2D U-Net 3-epoch local run:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 3 --batch-size 8 --num-workers 2 --run-dir runs/unet2d_modified_3epoch_local
+```
+
+Longer default-style run:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 100 --batch-size 8 --num-workers 2 --run-dir runs/unet2d_modified
+```
+
+If `num-workers 2` causes a multiprocessing/DataLoader error, use:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 3 --batch-size 8 --num-workers 0 --run-dir runs/unet2d_modified_3epoch_local
+```
+
+## 6. Useful Training Options
 
 The most useful command-line options are:
 
@@ -112,7 +134,13 @@ Very small 2D U-Net smoke test:
 source .venv/bin/activate && python scripts/train_unet2d.py --epochs 1 --batch-size 1 --num-workers 0 --base-channels 8 --max-train-samples 2 --max-val-samples 2 --run-dir /tmp/unet2d_smoke_test
 ```
 
-## 6. Stop Training
+Very small modified 2D U-Net smoke test:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 1 --batch-size 1 --num-workers 0 --base-channels 8 --max-train-samples 2 --max-val-samples 2 --run-dir /tmp/unet2d_modified_smoke_test
+```
+
+## 7. Stop Training
 
 To stop a foreground training run, press:
 
@@ -124,12 +152,12 @@ Checkpoints are saved at the end of each completed epoch. If you stop in the mid
 
 The script can start a new training run from saved model weights with `--weights`. This loads the model parameters only; the optimizer starts fresh.
 
-## 7. Files Saved During Training
+## 8. Files Saved During Training
 
 For a run directory such as:
 
 ```text
-runs/unet2d_3epoch_local/
+runs/unet2d_modified_3epoch_local/
 ```
 
 the script saves:
@@ -151,25 +179,25 @@ best_epoch_002.pt
 
 Only one `latest_epoch_XXX.pt` and one `best_epoch_XXX.pt` are kept. Older latest/best checkpoint files are removed automatically.
 
-## 8. Start From Saved Weights
+## 9. Start From Saved Weights
 
 Start a new run from the best weights of a previous run:
 
 ```bash
-source .venv/bin/activate && python scripts/train_unet2d.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_3epoch_local/best_epoch_003.pt --run-dir runs/unet2d_from_best
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_modified_3epoch_local/best_epoch_003.pt --run-dir runs/unet2d_modified_from_best
 ```
 
 Start a new run from the latest weights of a previous run:
 
 ```bash
-source .venv/bin/activate && python scripts/train_unet2d.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_3epoch_local/latest_epoch_003.pt --run-dir runs/unet2d_from_latest
+source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_modified_3epoch_local/latest_epoch_003.pt --run-dir runs/unet2d_modified_from_latest
 ```
 
 Use the exact filename that exists in your run folder. For example, if the best validation Dice happened at epoch 2, the file will be named `best_epoch_002.pt`.
 
-For FCN-8, use the same pattern with `scripts/train_fcn8.py` and an FCN-8 checkpoint. Do not load FCN-8 weights into U-Net, or U-Net weights into FCN-8, because the layer names and shapes are different.
+For FCN-8 or regular 2D U-Net, use the same pattern with the matching training script and checkpoint. Do not load weights across different architectures because the layer names and shapes are different.
 
-## 9. Read Training Progress
+## 10. Read Training Progress
 
 During training, the script prints a summary after each epoch:
 
@@ -188,12 +216,12 @@ The most important values are:
 
 For segmentation, `val_dice` is usually more informative than pixel accuracy because the background class is very large.
 
-## 10. Read The Metrics CSV
+## 11. Read The Metrics CSV
 
 Show the saved metrics:
 
 ```bash
-column -s, -t < runs/unet2d_3epoch_local/metrics.csv | less -S
+column -s, -t < runs/unet2d_modified_3epoch_local/metrics.csv | less -S
 ```
 
 Print only the main columns:
@@ -202,7 +230,7 @@ Print only the main columns:
 python - <<'PY'
 import pandas as pd
 
-metrics = pd.read_csv("runs/unet2d_3epoch_local/metrics.csv")
+metrics = pd.read_csv("runs/unet2d_modified_3epoch_local/metrics.csv")
 print(metrics[[
     "epoch",
     "train_loss",
@@ -222,7 +250,7 @@ python - <<'PY'
 import pandas as pd
 import matplotlib.pyplot as plt
 
-metrics = pd.read_csv("runs/unet2d_3epoch_local/metrics.csv")
+metrics = pd.read_csv("runs/unet2d_modified_3epoch_local/metrics.csv")
 
 plt.figure()
 plt.plot(metrics["epoch"], metrics["train_loss"], label="train loss")
@@ -244,7 +272,7 @@ plt.show()
 PY
 ```
 
-## 11. Inspect A Saved Checkpoint
+## 12. Inspect A Saved Checkpoint
 
 Print basic checkpoint information:
 
@@ -252,7 +280,7 @@ Print basic checkpoint information:
 python - <<'PY'
 import torch
 
-checkpoint = torch.load("runs/unet2d_3epoch_local/latest_epoch_003.pt", map_location="cpu")
+checkpoint = torch.load("runs/unet2d_modified_3epoch_local/latest_epoch_003.pt", map_location="cpu")
 print("epoch:", checkpoint["epoch"])
 print("elapsed_time:", checkpoint["elapsed_time"])
 print("metrics:", checkpoint["metrics"])
@@ -262,7 +290,7 @@ PY
 
 Use `best_epoch_XXX.pt` when you want the checkpoint with the best validation foreground Dice so far.
 
-## 12. Interpreting Results
+## 13. Interpreting Results
 
 A healthy early run should usually show:
 
