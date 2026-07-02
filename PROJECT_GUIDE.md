@@ -1,6 +1,6 @@
-# ACDC FCN-8 Project Guide
+# ACDC Segmentation Project Guide
 
-This project trains a PyTorch FCN-8 segmentation model on the 2D ACDC preprocessed dataset exported by `notebooks/acdc_paper_preprocessing.ipynb`.
+This project trains PyTorch FCN-8 and 2D U-Net segmentation models on the 2D ACDC preprocessed dataset exported by `notebooks/acdc_paper_preprocessing.ipynb`.
 
 ## 1. Environment Setup
 
@@ -40,9 +40,9 @@ Each `.h5` file should contain:
 
 If this folder does not exist, first run `notebooks/acdc_paper_preprocessing.ipynb` to export the 2D preprocessed slices.
 
-## 3. Start Training
+## 3. Start FCN-8 Training
 
-Basic 3-epoch local run:
+Basic FCN-8 3-epoch local run:
 
 ```bash
 source .venv/bin/activate && python scripts/train_fcn8.py --epochs 3 --batch-size 8 --num-workers 2 --run-dir runs/fcn8_3epoch_local
@@ -60,7 +60,27 @@ If `num-workers 2` causes a multiprocessing/DataLoader error, use:
 source .venv/bin/activate && python scripts/train_fcn8.py --epochs 3 --batch-size 8 --num-workers 0 --run-dir runs/fcn8_3epoch_local
 ```
 
-## 4. Useful Training Options
+## 4. Start 2D U-Net Training
+
+Basic 2D U-Net 3-epoch local run:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 3 --batch-size 8 --num-workers 2 --run-dir runs/unet2d_3epoch_local
+```
+
+Longer default-style run:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 100 --batch-size 8 --num-workers 2 --run-dir runs/unet2d
+```
+
+If `num-workers 2` causes a multiprocessing/DataLoader error, use:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 3 --batch-size 8 --num-workers 0 --run-dir runs/unet2d_3epoch_local
+```
+
+## 5. Useful Training Options
 
 The most useful command-line options are:
 
@@ -72,19 +92,27 @@ The most useful command-line options are:
 --batch-size            Number of slices per batch
 --num-workers           DataLoader worker processes
 --learning-rate         Adam learning rate, default 0.01
+--base-channels         U-Net channel width, default 64
+--classifier-channels   FCN-8 classifier width, default 1024
 --val-fraction          Fraction of patients used for validation, default 0.2
 --seed                  Random seed for reproducibility
 --max-train-samples     Limit training samples for a quick test
 --max-val-samples       Limit validation samples for a quick test
 ```
 
-Very small smoke test:
+Very small FCN-8 smoke test:
 
 ```bash
 source .venv/bin/activate && python scripts/train_fcn8.py --epochs 1 --batch-size 1 --num-workers 0 --classifier-channels 64 --max-train-samples 2 --max-val-samples 2 --run-dir /tmp/fcn8_smoke_test
 ```
 
-## 5. Stop Training
+Very small 2D U-Net smoke test:
+
+```bash
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 1 --batch-size 1 --num-workers 0 --base-channels 8 --max-train-samples 2 --max-val-samples 2 --run-dir /tmp/unet2d_smoke_test
+```
+
+## 6. Stop Training
 
 To stop a foreground training run, press:
 
@@ -96,12 +124,12 @@ Checkpoints are saved at the end of each completed epoch. If you stop in the mid
 
 The script can start a new training run from saved model weights with `--weights`. This loads the model parameters only; the optimizer starts fresh.
 
-## 6. Files Saved During Training
+## 7. Files Saved During Training
 
 For a run directory such as:
 
 ```text
-runs/fcn8_3epoch_local/
+runs/unet2d_3epoch_local/
 ```
 
 the script saves:
@@ -123,23 +151,25 @@ best_epoch_002.pt
 
 Only one `latest_epoch_XXX.pt` and one `best_epoch_XXX.pt` are kept. Older latest/best checkpoint files are removed automatically.
 
-## 7. Start From Saved Weights
+## 8. Start From Saved Weights
 
 Start a new run from the best weights of a previous run:
 
 ```bash
-source .venv/bin/activate && python scripts/train_fcn8.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/fcn8_3epoch_local/best_epoch_003.pt --run-dir runs/fcn8_from_best
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_3epoch_local/best_epoch_003.pt --run-dir runs/unet2d_from_best
 ```
 
 Start a new run from the latest weights of a previous run:
 
 ```bash
-source .venv/bin/activate && python scripts/train_fcn8.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/fcn8_3epoch_local/latest_epoch_003.pt --run-dir runs/fcn8_from_latest
+source .venv/bin/activate && python scripts/train_unet2d.py --epochs 20 --batch-size 8 --num-workers 2 --weights runs/unet2d_3epoch_local/latest_epoch_003.pt --run-dir runs/unet2d_from_latest
 ```
 
 Use the exact filename that exists in your run folder. For example, if the best validation Dice happened at epoch 2, the file will be named `best_epoch_002.pt`.
 
-## 8. Read Training Progress
+For FCN-8, use the same pattern with `scripts/train_fcn8.py` and an FCN-8 checkpoint. Do not load FCN-8 weights into U-Net, or U-Net weights into FCN-8, because the layer names and shapes are different.
+
+## 9. Read Training Progress
 
 During training, the script prints a summary after each epoch:
 
@@ -158,12 +188,12 @@ The most important values are:
 
 For segmentation, `val_dice` is usually more informative than pixel accuracy because the background class is very large.
 
-## 9. Read The Metrics CSV
+## 10. Read The Metrics CSV
 
 Show the saved metrics:
 
 ```bash
-column -s, -t < runs/fcn8_3epoch_local/metrics.csv | less -S
+column -s, -t < runs/unet2d_3epoch_local/metrics.csv | less -S
 ```
 
 Print only the main columns:
@@ -172,7 +202,7 @@ Print only the main columns:
 python - <<'PY'
 import pandas as pd
 
-metrics = pd.read_csv("runs/fcn8_3epoch_local/metrics.csv")
+metrics = pd.read_csv("runs/unet2d_3epoch_local/metrics.csv")
 print(metrics[[
     "epoch",
     "train_loss",
@@ -192,7 +222,7 @@ python - <<'PY'
 import pandas as pd
 import matplotlib.pyplot as plt
 
-metrics = pd.read_csv("runs/fcn8_3epoch_local/metrics.csv")
+metrics = pd.read_csv("runs/unet2d_3epoch_local/metrics.csv")
 
 plt.figure()
 plt.plot(metrics["epoch"], metrics["train_loss"], label="train loss")
@@ -214,7 +244,7 @@ plt.show()
 PY
 ```
 
-## 10. Inspect A Saved Checkpoint
+## 11. Inspect A Saved Checkpoint
 
 Print basic checkpoint information:
 
@@ -222,7 +252,7 @@ Print basic checkpoint information:
 python - <<'PY'
 import torch
 
-checkpoint = torch.load("runs/fcn8_3epoch_local/latest_epoch_003.pt", map_location="cpu")
+checkpoint = torch.load("runs/unet2d_3epoch_local/latest_epoch_003.pt", map_location="cpu")
 print("epoch:", checkpoint["epoch"])
 print("elapsed_time:", checkpoint["elapsed_time"])
 print("metrics:", checkpoint["metrics"])
@@ -232,7 +262,7 @@ PY
 
 Use `best_epoch_XXX.pt` when you want the checkpoint with the best validation foreground Dice so far.
 
-## 11. Interpreting Results
+## 12. Interpreting Results
 
 A healthy early run should usually show:
 
