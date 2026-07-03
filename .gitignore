@@ -50,7 +50,7 @@ data/
 datasets/
 raw/
 processed/
-runs/
+#runs/
 logs/
 checkpoints/
 weights/
@@ -81,3 +81,4 @@ ACDC*
 
 # Project specific
 papers/
+python*
