@@ -9,7 +9,6 @@ from pathlib import Path
 import h5py
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -19,6 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from models import FCN8
+from training_losses import add_loss_arguments, build_loss
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +288,7 @@ def parse_args():
     parser.add_argument("--beta1", type=float, default=0.9)
     parser.add_argument("--beta2", type=float, default=0.999)
     parser.add_argument("--weight-decay", type=float, default=0.0)
+    add_loss_arguments(parser)
 
     # Validation split and reproducibility.
     parser.add_argument("--val-fraction", type=float, default=0.2)
@@ -357,8 +358,13 @@ def main():
     if args.weights is not None:
         load_starting_weights(model, args.weights, device)
 
-    # The paper reports cross-entropy training with Adam at lr=0.01.
-    criterion = nn.CrossEntropyLoss()
+    criterion = build_loss(
+        args.loss,
+        args.num_classes,
+        device,
+        background_weight=args.background_class_weight,
+        foreground_weight=args.foreground_class_weight,
+    )
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args.learning_rate,
@@ -387,6 +393,7 @@ def main():
     print(f"Device: {device}")
     print(f"Train files: {len(train_files)} from {len(train_patients)} patients")
     print(f"Validation files: {len(val_files)} from {len(val_patients)} patients")
+    print(f"Loss: {args.loss}")
     print(f"Run directory: {args.run_dir}")
 
     best_val_dice = -1.0

@@ -12,12 +12,12 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-# Allow the script to be run as `python scripts/train_unet2d.py` while still
+# Allow the script to be run as `python scripts/train_unet3d.py` while still
 # importing project modules from the repository root.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from models import UNet2D
+from models import UNet3D
 from training_losses import add_loss_arguments, build_loss
 
 
@@ -27,14 +27,14 @@ from training_losses import add_loss_arguments, build_loss
 
 
 def get_patient_id(path):
-    # File names look like patient001_frame01_slice_0.h5.
+    # File names look like patient001_frame01.h5.
     name = path.stem
     patient_part = name.split("_")[0]
     return int(patient_part.replace("patient", ""))
 
 
 def split_by_patient(files, val_fraction, seed):
-    # Split by patient instead of by slice so slices from the same patient do
+    # Split by patient instead of by volume so frames from the same patient do
     # not appear in both training and validation sets.
     patients = sorted({get_patient_id(path) for path in files})
     rng = random.Random(seed)
@@ -50,13 +50,58 @@ def split_by_patient(files, val_fraction, seed):
 
 
 # ---------------------------------------------------------------------------
-# Dataset loading
+# Dataset loading and optional patching
 # ---------------------------------------------------------------------------
 
 
-class ACDCSliceDataset(Dataset):
-    def __init__(self, files):
+def center_crop_or_pad(volume, target_shape, pad_value):
+    depth, height, width = volume.shape
+    target_depth, target_height, target_width = target_shape
+
+    start_d = max((depth - target_depth) // 2, 0)
+    start_h = max((height - target_height) // 2, 0)
+    start_w = max((width - target_width) // 2, 0)
+    volume = volume[
+        start_d : start_d + min(depth, target_depth),
+        start_h : start_h + min(height, target_height),
+        start_w : start_w + min(width, target_width),
+    ]
+
+    depth, height, width = volume.shape
+    output = np.full(target_shape, pad_value, dtype=volume.dtype)
+    start_d = max((target_depth - depth) // 2, 0)
+    start_h = max((target_height - height) // 2, 0)
+    start_w = max((target_width - width) // 2, 0)
+    output[start_d : start_d + depth, start_h : start_h + height, start_w : start_w + width] = volume
+    return output
+
+
+def random_crop_pair(image, label, patch_shape):
+    depth, height, width = image.shape
+    patch_depth, patch_height, patch_width = patch_shape
+
+    start_d = random.randint(0, depth - patch_depth)
+    start_h = random.randint(0, height - patch_height)
+    start_w = random.randint(0, width - patch_width)
+
+    image = image[
+        start_d : start_d + patch_depth,
+        start_h : start_h + patch_height,
+        start_w : start_w + patch_width,
+    ]
+    label = label[
+        start_d : start_d + patch_depth,
+        start_h : start_h + patch_height,
+        start_w : start_w + patch_width,
+    ]
+    return image, label
+
+
+class ACDCVolumeDataset(Dataset):
+    def __init__(self, files, patch_shape=None, random_patch=False):
         self.files = list(files)
+        self.patch_shape = patch_shape
+        self.random_patch = random_patch
 
     def __len__(self):
         return len(self.files)
@@ -64,11 +109,18 @@ class ACDCSliceDataset(Dataset):
     def __getitem__(self, index):
         path = self.files[index]
         with h5py.File(path, "r") as h5_file:
-            # Images are stored as H x W float arrays; labels are H x W class IDs.
+            # Images are stored as D x H x W float arrays; labels are D x H x W class IDs.
             image = h5_file["image"][:].astype(np.float32)
             label = h5_file["label"][:].astype(np.int64)
 
-        # PyTorch convolution layers expect channel-first tensors: C x H x W.
+        if self.patch_shape is not None:
+            # Pad small volumes first so the requested patch always exists.
+            image = center_crop_or_pad(image, self.patch_shape, pad_value=0)
+            label = center_crop_or_pad(label, self.patch_shape, pad_value=0)
+            if self.random_patch:
+                image, label = random_crop_pair(image, label, self.patch_shape)
+
+        # PyTorch Conv3d layers expect channel-first tensors: C x D x H x W.
         image = torch.from_numpy(image).unsqueeze(0)
         label = torch.from_numpy(label)
         return image, label
@@ -91,7 +143,7 @@ def update_confusion_matrix(confusion_matrix, logits, labels, num_classes):
 
 def metrics_from_confusion(confusion_matrix):
     # Dice is computed per class from the accumulated confusion matrix:
-    # Dice = 2TP / (ground_truth_pixels + predicted_pixels).
+    # Dice = 2TP / (ground_truth_voxels + predicted_voxels).
     confusion_matrix = confusion_matrix.float()
     true_positive = torch.diag(confusion_matrix)
     label_count = confusion_matrix.sum(dim=1)
@@ -132,7 +184,7 @@ def run_epoch(model, loader, criterion, optimizer, device, num_classes, train):
             optimizer.zero_grad(set_to_none=True)
 
         with torch.set_grad_enabled(train):
-            # U-Net returns raw logits with shape B x num_classes x H x W.
+            # 3D U-Net returns raw logits with shape B x num_classes x D x H x W.
             logits = model(images)
             loss = criterion(logits, labels)
 
@@ -270,25 +322,30 @@ def append_metrics(metrics_path, row, num_classes):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train 2D U-Net on ACDC preprocessed 2D slices.")
+    parser = argparse.ArgumentParser(description="Train 3D U-Net on ACDC preprocessed 3D volumes.")
 
     # Data and output locations.
-    parser.add_argument("--data-dir", type=Path, default=Path("outputs/acdc_preprocessed_2d/ACDC_training_slices"))
-    parser.add_argument("--run-dir", type=Path, default=Path("runs/unet2d"))
+    parser.add_argument("--data-dir", type=Path, default=Path("outputs/acdc_preprocessed_3d/ACDC_training_volumes"))
+    parser.add_argument("--run-dir", type=Path, default=Path("runs/unet3d"))
     parser.add_argument("--weights", type=Path, default=None, help="Optional model weights to load before training.")
 
     # Training settings. The optimizer defaults follow the paper.
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--num-classes", type=int, default=4)
     parser.add_argument("--in-channels", type=int, default=1)
-    parser.add_argument("--base-channels", type=int, default=64)
+    parser.add_argument("--base-channels", type=int, default=16)
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--beta1", type=float, default=0.9)
     parser.add_argument("--beta2", type=float, default=0.999)
     parser.add_argument("--weight-decay", type=float, default=0.0)
     add_loss_arguments(parser)
+
+    # Optional patch shape for lower-memory training and validation.
+    parser.add_argument("--patch-depth", type=int, default=None)
+    parser.add_argument("--patch-height", type=int, default=None)
+    parser.add_argument("--patch-width", type=int, default=None)
 
     # Validation split and reproducibility.
     parser.add_argument("--val-fraction", type=float, default=0.2)
@@ -300,6 +357,15 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_patch_shape(args):
+    patch_values = [args.patch_depth, args.patch_height, args.patch_width]
+    if all(value is None for value in patch_values):
+        return None
+    if any(value is None for value in patch_values):
+        raise ValueError("--patch-depth, --patch-height, and --patch-width must be set together")
+    return tuple(patch_values)
+
+
 # ---------------------------------------------------------------------------
 # Main training script
 # ---------------------------------------------------------------------------
@@ -308,13 +374,14 @@ def parse_args():
 def main():
     args = parse_args()
     training_start_time = time.perf_counter()
+    patch_shape = get_patch_shape(args)
 
     # Make the patient split and weight initialization repeatable.
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    # Load all exported 2D HDF5 slices and split them by patient.
+    # Load all exported 3D HDF5 volumes and split them by patient.
     files = sorted(args.data_dir.glob("*.h5"))
     if not files:
         raise FileNotFoundError(f"No .h5 files found in {args.data_dir}")
@@ -332,14 +399,14 @@ def main():
 
     # DataLoader turns HDF5 files into mini-batches of tensors.
     train_loader = DataLoader(
-        ACDCSliceDataset(train_files),
+        ACDCVolumeDataset(train_files, patch_shape=patch_shape, random_patch=patch_shape is not None),
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
         pin_memory=torch.cuda.is_available(),
     )
     val_loader = DataLoader(
-        ACDCSliceDataset(val_files),
+        ACDCVolumeDataset(val_files, patch_shape=patch_shape, random_patch=False),
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -348,7 +415,7 @@ def main():
 
     # Prefer GPU automatically, but keep CPU training available.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = UNet2D(
+    model = UNet3D(
         in_channels=args.in_channels,
         num_classes=args.num_classes,
         base_channels=args.base_channels,
@@ -379,6 +446,7 @@ def main():
             {
                 "args": args_to_dict(args),
                 "device": str(device),
+                "patch_shape": patch_shape,
                 "train_patients": train_patients,
                 "val_patients": val_patients,
                 "num_train_files": len(train_files),
@@ -393,6 +461,7 @@ def main():
     print(f"Device: {device}")
     print(f"Train files: {len(train_files)} from {len(train_patients)} patients")
     print(f"Validation files: {len(val_files)} from {len(val_patients)} patients")
+    print(f"Patch shape: {patch_shape if patch_shape is not None else 'full volume'}")
     print(f"Loss: {args.loss}")
     print(f"Run directory: {args.run_dir}")
 
