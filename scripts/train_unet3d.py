@@ -18,6 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from models import UNet3D
+from acdc_h5 import as_float_list, read_spacing_zyx
 from training_losses import add_loss_arguments, build_loss
 
 
@@ -55,6 +56,28 @@ def split_by_patient(files, val_fraction, seed):
     train_files = [path for path in files if get_patient_id(path) in train_patients]
     val_files = [path for path in files if get_patient_id(path) in val_patients]
     return train_files, val_files, sorted(train_patients), sorted(val_patients)
+
+
+def summarize_spacing_metadata(files):
+    spacings = []
+    missing = 0
+    for path in files:
+        with h5py.File(path, "r") as h5_file:
+            try:
+                spacings.append(read_spacing_zyx(h5_file))
+            except KeyError:
+                missing += 1
+
+    if not spacings:
+        return {"missing_spacing_files": missing}
+
+    spacing_array = np.stack(spacings)
+    return {
+        "missing_spacing_files": missing,
+        "spacing_zyx_min": as_float_list(spacing_array.min(axis=0)),
+        "spacing_zyx_max": as_float_list(spacing_array.max(axis=0)),
+        "spacing_zyx_mean": as_float_list(spacing_array.mean(axis=0)),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +356,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train 3D U-Net on ACDC preprocessed 3D volumes.")
 
     # Data and output locations.
-    parser.add_argument("--data-dir", type=Path, default=Path("outputs/acdc_preprocessed_3d/ACDC_training_volumes"))
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=Path("outputs/acdc_preprocessed_3d_spacing/ACDC_training_volumes"),
+    )
     parser.add_argument("--run-dir", type=Path, default=Path("runs/unet3d"))
     parser.add_argument("--weights", type=Path, default=None, help="Optional model weights to load before training.")
 
@@ -405,6 +432,8 @@ def main():
     if args.max_val_samples is not None:
         val_files = val_files[: args.max_val_samples]
 
+    spacing_metadata = summarize_spacing_metadata(train_files + val_files)
+
     # DataLoader turns HDF5 files into mini-batches of tensors.
     train_loader = DataLoader(
         ACDCVolumeDataset(train_files, patch_shape=patch_shape, random_patch=patch_shape is not None),
@@ -459,6 +488,7 @@ def main():
                 "val_patients": val_patients,
                 "num_train_files": len(train_files),
                 "num_val_files": len(val_files),
+                "spacing_metadata": spacing_metadata,
                 "training_started_at_unix": time.time(),
             },
             file,
@@ -469,6 +499,7 @@ def main():
     print(f"Device: {device}")
     print(f"Train files: {len(train_files)} from {len(train_patients)} patients")
     print(f"Validation files: {len(val_files)} from {len(val_patients)} patients")
+    print(f"Spacing metadata: {spacing_metadata}")
     print(f"Patch shape: {patch_shape if patch_shape is not None else 'full volume'}")
     print(f"Loss: {args.loss}")
     print(f"Run directory: {args.run_dir}")

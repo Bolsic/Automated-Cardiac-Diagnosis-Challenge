@@ -37,7 +37,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train modified 2D U-Net on ACDC preprocessed 2D slices.")
 
     # Data and output locations.
-    parser.add_argument("--data-dir", type=Path, default=Path("outputs/acdc_preprocessed_2d/ACDC_training_slices"))
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=Path("outputs/acdc_preprocessed_2d_spacing/unet2d/ACDC_training_slices"),
+    )
     parser.add_argument("--run-dir", type=Path, default=Path("runs/unet2d_modified"))
     parser.add_argument("--weights", type=Path, default=None, help="Optional model weights to load before training.")
 
@@ -94,6 +98,10 @@ def main():
     if args.max_val_samples is not None:
         val_files = val_files[: args.max_val_samples]
 
+    from train_unet2d import summarize_spacing_metadata
+
+    spacing_metadata = summarize_spacing_metadata(train_files + val_files)
+
     # DataLoader turns HDF5 files into mini-batches of tensors.
     train_loader = DataLoader(
         ACDCSliceDataset(train_files),
@@ -147,6 +155,7 @@ def main():
                 "val_patients": val_patients,
                 "num_train_files": len(train_files),
                 "num_val_files": len(val_files),
+                "spacing_metadata": spacing_metadata,
                 "training_started_at_unix": time.time(),
             },
             file,
@@ -157,6 +166,7 @@ def main():
     print(f"Device: {device}")
     print(f"Train files: {len(train_files)} from {len(train_patients)} patients")
     print(f"Validation files: {len(val_files)} from {len(val_patients)} patients")
+    print(f"Spacing metadata: {spacing_metadata}")
     print(f"Loss: {args.loss}")
     print(f"Run directory: {args.run_dir}")
 

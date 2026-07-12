@@ -25,34 +25,72 @@ python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_
 
 The training script automatically uses CUDA when available. If CUDA is not available, it runs on CPU.
 
-## 2. Datasets Used For Training
+## 2. Spacing-Aware Data Preparation
 
-The 2D training workflow uses the exported 2D slices:
+The original ACDC NIfTI files contain voxel spacing in their headers. The older
+`ACDC_preprocessed` HDF5 files do not preserve that metadata, so the current
+workflow starts by converting the NIfTI files to HDF5 again while keeping the
+spacing, affine, phase, and diagnosis metadata.
 
-```text
-outputs/acdc_preprocessed_2d/ACDC_training_slices/
+Create metadata-preserving HDF5 volumes and slices:
+
+```bash
+source .venv/bin/activate && python scripts/convert_acdc_nifti_to_h5.py
 ```
 
-Each `.h5` file should contain:
-
-- `image`: a preprocessed 2D image slice
-- `label`: the segmentation label map for that slice
-
-If this folder does not exist, first run `notebooks/acdc_paper_preprocessing.ipynb` to export the 2D preprocessed slices.
-
-The 3D training workflow uses exported 3D volumes:
+This writes:
 
 ```text
-outputs/acdc_preprocessed_3d/ACDC_training_volumes/
+outputs/acdc_h5_with_metadata/ACDC_training_volumes/
+outputs/acdc_h5_with_metadata/ACDC_training_slices/
+outputs/acdc_h5_with_metadata/ACDC_testing_volumes/
+outputs/acdc_h5_with_metadata/ACDC_testing_slices/
 ```
 
-Create them from `ACDC_preprocessed/ACDC_training_volumes/` with:
+Each converted HDF5 file stores:
+
+- `image`: image array in `Z x Y x X` order for volumes, or `Y x X` for slices
+- `label`: segmentation label map when ground truth is available
+- `spacing_zyx`: physical voxel spacing in millimetres in the same axis order as the stored array
+- `spacing_xyz`, `affine`, `pixdim`: original NIfTI spatial metadata
+- `phase`, `diagnosis`, `patient_id`, `frame`: ACDC metadata from the NIfTI/`Info.cfg` files
+
+The 2D paper preprocessing resamples only the in-plane axes to `1.37 x 1.37 mm`
+and preserves the original through-plane spacing. Export FCN-8 inputs at
+`224 x 224`:
+
+```text
+source .venv/bin/activate && python scripts/preprocess_acdc_2d.py --architecture fcn8
+```
+
+Export 2D U-Net and modified 2D U-Net inputs at `396 x 396`:
+
+```bash
+source .venv/bin/activate && python scripts/preprocess_acdc_2d.py --architecture unet2d
+```
+
+These commands write:
+
+```text
+outputs/acdc_preprocessed_2d_spacing/fcn8/ACDC_training_slices/
+outputs/acdc_preprocessed_2d_spacing/unet2d/ACDC_training_slices/
+```
+
+The 3D paper preprocessing resamples volumes to `5.0 x 2.5 x 2.5 mm`
+(`Z x Y x X`) and then pads/crops to `60 x 204 x 204` voxels:
 
 ```bash
 source .venv/bin/activate && python scripts/preprocess_acdc_3d.py
 ```
 
-The paper used 3D inputs of `204 x 204 x 60`. The exporter uses that size by default. Because the local `ACDC_preprocessed` files do not include voxel spacing metadata, the exporter resizes the in-plane axes and center pads/crops the depth axis.
+This writes:
+
+```text
+outputs/acdc_preprocessed_3d_spacing/ACDC_training_volumes/
+```
+
+Training scripts now default to these spacing-aware output folders and record a
+`spacing_metadata` summary in each run's `config.json`.
 
 ## 3. Start FCN-8 Training
 
@@ -186,8 +224,9 @@ source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 1 
 Very small 3D preprocessing and training smoke test:
 
 ```bash
-source .venv/bin/activate && python scripts/preprocess_acdc_3d.py --max-files 4 --target-depth 16 --target-height 32 --target-width 32 --output-dir /tmp/acdc_3d_smoke
-source .venv/bin/activate && python scripts/train_unet3d.py --data-dir /tmp/acdc_3d_smoke --epochs 1 --batch-size 1 --num-workers 0 --base-channels 4 --max-train-samples 1 --max-val-samples 1 --run-dir /tmp/unet3d_smoke_test
+source .venv/bin/activate && python scripts/convert_acdc_nifti_to_h5.py --output-root /tmp/acdc_h5_smoke --max-patients 2
+source .venv/bin/activate && python scripts/preprocess_acdc_3d.py --input-dir /tmp/acdc_h5_smoke/ACDC_training_volumes --output-dir /tmp/acdc_3d_smoke --max-files 4 --target-depth 16 --target-height 32 --target-width 32
+source .venv/bin/activate && python scripts/train_unet3d.py --data-dir /tmp/acdc_3d_smoke --epochs 1 --batch-size 1 --num-workers 0 --base-channels 4 --patch-depth 16 --patch-height 32 --patch-width 32 --max-train-samples 1 --max-val-samples 1 --run-dir /tmp/unet3d_smoke_test
 ```
 
 ## 8. Stop Training
