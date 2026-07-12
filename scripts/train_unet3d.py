@@ -20,6 +20,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from models import UNet3D
 from acdc_h5 import as_float_list, read_spacing_zyx
 from training_losses import add_loss_arguments, build_loss
+from training_utils import add_scheduler_arguments, build_scheduler, diagnosis_counts, split_by_patient
 
 
 # ---------------------------------------------------------------------------
@@ -32,30 +33,6 @@ def get_patient_id(path):
     name = path.stem
     patient_part = name.split("_")[0]
     return int(patient_part.replace("patient", ""))
-
-
-def split_by_patient(files, val_fraction, seed):
-    # Split by patient instead of by volume so frames from the same patient do
-    # not appear in both training and validation sets.
-    patients = sorted({get_patient_id(path) for path in files})
-    rng = random.Random(seed)
-    rng.shuffle(patients)
-
-    if len(patients) < 2:
-        raise ValueError(
-            "3D U-Net training needs at least two patients so one can be used "
-            "for training and one for validation. Add more input files or set "
-            "the smoke-test preprocessing command to export at least 4 files."
-        )
-
-    num_val = max(1, round(len(patients) * val_fraction))
-    num_val = min(num_val, len(patients) - 1)
-    val_patients = set(patients[:num_val])
-    train_patients = set(patients[num_val:])
-
-    train_files = [path for path in files if get_patient_id(path) in train_patients]
-    val_files = [path for path in files if get_patient_id(path) in val_patients]
-    return train_files, val_files, sorted(train_patients), sorted(val_patients)
 
 
 def summarize_spacing_metadata(files):
@@ -376,6 +353,7 @@ def parse_args():
     parser.add_argument("--beta2", type=float, default=0.999)
     parser.add_argument("--weight-decay", type=float, default=0.0)
     add_loss_arguments(parser)
+    add_scheduler_arguments(parser)
 
     # Optional patch shape for lower-memory training and validation.
     parser.add_argument("--patch-depth", type=int, default=None)
@@ -475,6 +453,9 @@ def main():
         betas=(args.beta1, args.beta2),
         weight_decay=args.weight_decay,
     )
+    scheduler = build_scheduler(optimizer, args)
+    train_diagnoses = diagnosis_counts(files, train_patients)
+    val_diagnoses = diagnosis_counts(files, val_patients)
 
     # Save run configuration and split details before training starts.
     args.run_dir.mkdir(parents=True, exist_ok=True)
@@ -486,6 +467,8 @@ def main():
                 "patch_shape": patch_shape,
                 "train_patients": train_patients,
                 "val_patients": val_patients,
+                "train_diagnosis_counts": train_diagnoses,
+                "val_diagnosis_counts": val_diagnoses,
                 "num_train_files": len(train_files),
                 "num_val_files": len(val_files),
                 "spacing_metadata": spacing_metadata,
@@ -499,6 +482,8 @@ def main():
     print(f"Device: {device}")
     print(f"Train files: {len(train_files)} from {len(train_patients)} patients")
     print(f"Validation files: {len(val_files)} from {len(val_patients)} patients")
+    print(f"Train diagnoses: {train_diagnoses}")
+    print(f"Validation diagnoses: {val_diagnoses}")
     print(f"Spacing metadata: {spacing_metadata}")
     print(f"Patch shape: {patch_shape if patch_shape is not None else 'full volume'}")
     print(f"Loss: {args.loss}")
@@ -532,6 +517,9 @@ def main():
             args.num_classes,
             train=False,
         )
+        epoch_learning_rate = optimizer.param_groups[0]["lr"]
+        if scheduler is not None:
+            scheduler.step(val_loss)
 
         epoch_seconds = time.perf_counter() - epoch_start_time
         elapsed_seconds = time.perf_counter() - training_start_time
@@ -545,7 +533,7 @@ def main():
             "val_loss": val_loss,
             "val_pixel_accuracy": val_accuracy,
             "val_mean_foreground_dice": val_dice,
-            "learning_rate": optimizer.param_groups[0]["lr"],
+            "learning_rate": epoch_learning_rate,
             "epoch_seconds": epoch_seconds,
             "elapsed_seconds": elapsed_seconds,
             "elapsed_time": format_seconds(elapsed_seconds),

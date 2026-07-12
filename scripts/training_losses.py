@@ -14,12 +14,14 @@ class ForegroundDiceLoss(nn.Module):
         targets = F.one_hot(labels, num_classes=num_classes)
         targets = targets.movedim(-1, 1).to(dtype=probabilities.dtype)
 
-        reduce_dims = tuple(dim for dim in range(probabilities.ndim) if dim not in (0, 1))
-        intersection = (probabilities * targets).sum(dim=reduce_dims)
-        denominator = probabilities.sum(dim=reduce_dims) + targets.sum(dim=reduce_dims)
-        dice = (2 * intersection + self.smooth) / (denominator + self.smooth)
-
-        return 1 - dice[:, 1:].mean()
+        # Baumgartner et al. pool all foreground classes and all locations into
+        # one ratio. Their published training loss does not multiply the
+        # numerator by two (unlike the standard Dice evaluation coefficient).
+        foreground_probabilities = probabilities[:, 1:]
+        foreground_targets = targets[:, 1:]
+        intersection = (foreground_probabilities * foreground_targets).sum()
+        denominator = foreground_probabilities.sum() + foreground_targets.sum()
+        return 1 - (intersection + self.smooth) / (denominator + self.smooth)
 
 
 def build_loss(loss_name, num_classes, device, background_weight=0.1, foreground_weight=0.3):
