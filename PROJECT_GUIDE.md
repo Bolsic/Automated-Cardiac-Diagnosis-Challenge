@@ -229,7 +229,44 @@ source .venv/bin/activate && python scripts/preprocess_acdc_3d.py --input-dir /t
 source .venv/bin/activate && python scripts/train_unet3d.py --data-dir /tmp/acdc_3d_smoke --epochs 1 --batch-size 1 --num-workers 0 --base-channels 4 --patch-depth 16 --patch-height 32 --patch-width 32 --max-train-samples 1 --max-val-samples 1 --run-dir /tmp/unet3d_smoke_test
 ```
 
-## 8. Stop Training
+## 8. Volume-Level Evaluation
+
+Training logs report Dice over slices or volumes seen by the validation loader.
+For paper-style evaluation of 2D networks, reconstruct patient/frame volumes
+from predicted 2D slices first:
+
+```bash
+source .venv/bin/activate && python scripts/evaluate_2d.py --run-dir runs/unet2d_modified_spacing_100epoch_ce --split val
+```
+
+For FCN-8 or standard 2D U-Net, pass the model name if it cannot be inferred
+from the run folder:
+
+```bash
+source .venv/bin/activate && python scripts/evaluate_2d.py --run-dir runs/fcn8 --model fcn8 --split val
+source .venv/bin/activate && python scripts/evaluate_2d.py --run-dir runs/unet2d --model unet2d --split val
+```
+
+Evaluate the 3D U-Net directly on 3D volumes:
+
+```bash
+source .venv/bin/activate && python scripts/evaluate_3d.py --run-dir runs/unet3d --split val
+```
+
+Both evaluators save:
+
+```text
+metrics_by_class.csv
+summary.json
+```
+
+Metrics are computed per reconstructed patient/frame volume and per foreground
+class (`RV`, `Myo`, `LV`). Dice is unitless; ASSD and Hausdorff distance use the
+HDF5 spacing metadata and are reported in millimetres. Use `--split all` to
+evaluate every available labeled file, `--checkpoint` to select a specific
+checkpoint, and `--output-dir` to choose where results are written.
+
+## 9. Stop Training
 
 To stop a foreground training run, press:
 
@@ -241,7 +278,7 @@ Checkpoints are saved at the end of each completed epoch. If you stop in the mid
 
 The script can start a new training run from saved model weights with `--weights`. This loads the model parameters only; the optimizer starts fresh.
 
-## 9. Files Saved During Training
+## 10. Files Saved During Training
 
 For a run directory such as:
 
