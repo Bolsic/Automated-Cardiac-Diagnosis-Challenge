@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "mean_dice": 0.8704744423933157,
+    "mean_assd_mm": 0.9245269020897668,
+    "mean_hd_mm": 15.567359736574428,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_200epoch_gpu_bs4_lr1e-4",
+    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_200epoch_gpu_bs4_lr1e-4\\best_epoch_064.pt",
+    "model": "unet2d_modified",
+    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
+    "split": "val",
+    "device": "cuda",
+    "volumes_evaluated": 40
+  }
+}

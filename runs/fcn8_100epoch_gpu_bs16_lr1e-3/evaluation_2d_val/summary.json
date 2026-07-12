@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "mean_dice": 0.8453643312302861,
+    "mean_assd_mm": 0.6811927966333703,
+    "mean_hd_mm": 13.021336141368836,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\fcn8_100epoch_gpu_bs16_lr1e-3",
+    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\fcn8_100epoch_gpu_bs16_lr1e-3\\best_epoch_100.pt",
+    "model": "fcn8",
+    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
+    "split": "val",
+    "device": "cuda",
+    "volumes_evaluated": 40
+  }
+}

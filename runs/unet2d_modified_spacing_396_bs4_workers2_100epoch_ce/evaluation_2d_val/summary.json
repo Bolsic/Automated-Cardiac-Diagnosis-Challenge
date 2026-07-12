@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "mean_dice": 0.801392493201238,
+    "mean_assd_mm": 2.7332551115451977,
+    "mean_hd_mm": 40.55253883974654,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_spacing_396_bs4_workers2_100epoch_ce",
+    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_spacing_396_bs4_workers2_100epoch_ce\\best_epoch_007.pt",
+    "model": "unet2d_modified",
+    "data_dir": "outputs\\acdc_preprocessed_2d_spacing\\unet2d\\ACDC_training_slices",
+    "split": "val",
+    "device": "cuda",
+    "volumes_evaluated": 40
+  }
+}

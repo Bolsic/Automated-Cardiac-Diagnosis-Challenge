@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "mean_dice": 0.8762827760626699,
+    "mean_assd_mm": 0.8251479988928497,
+    "mean_hd_mm": 13.194181063329244,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "runs\\unet2d_modified_100epoch_weighted_ce",
+    "checkpoint": "runs\\unet2d_modified_100epoch_weighted_ce\\best_epoch_066.pt",
+    "model": "unet2d_modified",
+    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
+    "split": "val",
+    "device": "cuda",
+    "volumes_evaluated": 40
+  }
+}

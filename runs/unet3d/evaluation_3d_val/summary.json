@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "mean_dice": 0.8618806815827059,
+    "mean_assd_mm": 0.49457725544104875,
+    "mean_hd_mm": 11.045887302771204,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet3d",
+    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet3d\\best_epoch_097.pt",
+    "model": "unet3d",
+    "data_dir": "outputs\\acdc_preprocessed_3d\\ACDC_training_volumes",
+    "split": "val",
+    "device": "cuda",
+    "volumes_evaluated": 40
+  }
+}

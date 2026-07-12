@@ -1,18 +1,21 @@
 {
   "args": {
-    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
-    "run_dir": "runs\\fcn8_5epoch_gpu_bs16_lr1e-3",
+    "data_dir": "outputs\\acdc_preprocessed_2d_spacing\\unet2d\\ACDC_training_slices",
+    "run_dir": "runs\\unet2d_modified_spacing_396_bs4_workers2_100epoch_ce",
     "weights": null,
-    "epochs": 5,
-    "batch_size": 16,
+    "epochs": 100,
+    "batch_size": 4,
     "num_workers": 2,
     "num_classes": 4,
     "in_channels": 1,
-    "classifier_channels": 1024,
-    "learning_rate": 0.001,
+    "base_channels": 64,
+    "learning_rate": 0.01,
     "beta1": 0.9,
     "beta2": 0.999,
     "weight_decay": 0.0,
+    "loss": "cross_entropy",
+    "background_class_weight": 0.1,
+    "foreground_class_weight": 0.3,
     "val_fraction": 0.2,
     "seed": 42,
     "max_train_samples": null,
@@ -123,7 +126,25 @@
     92,
     93
   ],
-  "num_train_files": 1538,
+  "num_train_files": 1528,
   "num_val_files": 374,
-  "training_started_at_unix": 1783098235.0776262
+  "spacing_metadata": {
+    "missing_spacing_files": 0,
+    "spacing_zyx_min": [
+      5.0,
+      1.3700000047683716,
+      1.3700000047683716
+    ],
+    "spacing_zyx_max": [
+      10.0,
+      1.3700000047683716,
+      1.3700000047683716
+    ],
+    "spacing_zyx_mean": [
+      8.998948097229004,
+      1.3700215816497803,
+      1.3700215816497803
+    ]
+  },
+  "training_started_at_unix": 1783862885.5401874
 }
