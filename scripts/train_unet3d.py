@@ -40,7 +40,15 @@ def split_by_patient(files, val_fraction, seed):
     rng = random.Random(seed)
     rng.shuffle(patients)
 
+    if len(patients) < 2:
+        raise ValueError(
+            "3D U-Net training needs at least two patients so one can be used "
+            "for training and one for validation. Add more input files or set "
+            "the smoke-test preprocessing command to export at least 4 files."
+        )
+
     num_val = max(1, round(len(patients) * val_fraction))
+    num_val = min(num_val, len(patients) - 1)
     val_patients = set(patients[:num_val])
     train_patients = set(patients[num_val:])
 

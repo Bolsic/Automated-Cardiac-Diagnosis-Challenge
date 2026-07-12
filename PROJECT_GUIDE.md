@@ -186,7 +186,7 @@ source .venv/bin/activate && python scripts/train_unet2d_modified.py --epochs 1 
 Very small 3D preprocessing and training smoke test:
 
 ```bash
-source .venv/bin/activate && python scripts/preprocess_acdc_3d.py --max-files 2 --target-depth 16 --target-height 32 --target-width 32 --output-dir /tmp/acdc_3d_smoke
+source .venv/bin/activate && python scripts/preprocess_acdc_3d.py --max-files 4 --target-depth 16 --target-height 32 --target-width 32 --output-dir /tmp/acdc_3d_smoke
 source .venv/bin/activate && python scripts/train_unet3d.py --data-dir /tmp/acdc_3d_smoke --epochs 1 --batch-size 1 --num-workers 0 --base-channels 4 --max-train-samples 1 --max-val-samples 1 --run-dir /tmp/unet3d_smoke_test
 ```
 
