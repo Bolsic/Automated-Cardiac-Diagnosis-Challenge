@@ -53,6 +53,37 @@ def split_name(split_dir_name):
     return "training" if split_dir_name == "training" else "testing"
 
 
+def find_acdc_database(input_root):
+    candidates = [
+        input_root,
+        input_root / "database",
+        input_root / "ACDC" / "database",
+        Path.cwd() / "ACDC" / "database",
+        Path.cwd() / "database",
+    ]
+
+    for candidate in candidates:
+        if (candidate / "training").is_dir() and (candidate / "testing").is_dir():
+            return candidate
+
+    nested = []
+    for child in input_root.rglob("database") if input_root.exists() else []:
+        if (child / "training").is_dir() and (child / "testing").is_dir():
+            nested.append(child)
+    if nested:
+        return sorted(nested)[0]
+
+    checked = "\n".join(f"  - {candidate}" for candidate in candidates)
+    raise FileNotFoundError(
+        "No ACDC NIfTI database folder found. Expected a folder containing "
+        "'training' and 'testing' patient folders.\n"
+        "Checked:\n"
+        f"{checked}\n\n"
+        "Pass the correct folder explicitly, for example:\n"
+        "python scripts\\convert_acdc_nifti_to_h5.py --input-root C:\\path\\to\\ACDC\\database"
+    )
+
+
 def save_volume(output_path, image, label, attrs):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with h5py.File(output_path, "w") as h5_file:
@@ -130,19 +161,22 @@ def parse_args():
 
 def main():
     args = parse_args()
+    input_root = find_acdc_database(args.input_root)
+    print(f"Using ACDC database: {input_root}")
+
     patient_dirs = []
-    for split_dir in (args.input_root / "training", args.input_root / "testing"):
+    for split_dir in (input_root / "training", input_root / "testing"):
         patient_dirs.extend(sorted(path for path in split_dir.glob("patient*") if path.is_dir()))
     if args.max_patients is not None:
         patient_dirs = patient_dirs[: args.max_patients]
     if not patient_dirs:
-        raise FileNotFoundError(f"No ACDC patient folders found under {args.input_root}")
+        raise FileNotFoundError(f"No ACDC patient folders found under {input_root}")
 
     frames = []
     for patient_dir in patient_dirs:
         frames.extend(find_frame_images(patient_dir))
     for frame_path in tqdm(frames, desc="convert nifti to h5"):
-        convert_frame(frame_path, args.output_root, args.input_root, export_slices=not args.no_slices)
+        convert_frame(frame_path, args.output_root, input_root, export_slices=not args.no_slices)
 
     print(f"Converted {len(frames)} frame volumes to {args.output_root}")
 
