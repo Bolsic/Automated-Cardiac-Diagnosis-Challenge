@@ -1,15 +1,16 @@
 {
   "summary": {
-    "mean_dice": 0.8762827760626699,
-    "mean_assd_mm": 0.8251479988928497,
-    "mean_hd_mm": 13.194181063329244,
+    "mean_dice": 0.8752471802221348,
+    "mean_assd_mm": 0.8779338035902259,
+    "mean_hd_mm": 7.648164054324763,
     "volumes": 40,
     "class_rows": 120
   },
   "metadata": {
-    "run_dir": "runs\\unet2d_modified_100epoch_weighted_ce",
-    "checkpoint": "runs\\unet2d_modified_100epoch_weighted_ce\\best_epoch_066.pt",
+    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_weighted_ce",
+    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_weighted_ce\\best_epoch_066.pt",
     "model": "unet2d_modified",
+    "postprocessing": "largest_connected_component_per_class",
     "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
     "split": "val",
     "device": "cuda",

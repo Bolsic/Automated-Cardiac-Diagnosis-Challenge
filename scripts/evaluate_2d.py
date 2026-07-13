@@ -8,11 +8,13 @@ import torch
 from tqdm import tqdm
 
 from evaluate_common import (
+    LARGEST_COMPONENT_POSTPROCESSING,
     get_frame_number,
     get_patient_id,
     get_slice_index,
     load_model,
     patient_filter_from_config,
+    read_phase_or_unknown,
     read_spacing_or_default,
     save_evaluation,
     summarize_rows,
@@ -52,6 +54,7 @@ def predict_slices(model, slice_paths, batch_size, device):
     predictions = []
     labels = []
     spacing = None
+    phase = "unknown"
     for start in range(0, len(slice_paths), batch_size):
         batch_paths = slice_paths[start : start + batch_size]
         images = []
@@ -62,6 +65,7 @@ def predict_slices(model, slice_paths, batch_size, device):
                 label = h5_file["label"][:].astype(np.int64)
                 if spacing is None:
                     spacing = read_spacing_or_default(h5_file, ndim=3)
+                    phase = read_phase_or_unknown(h5_file)
             images.append(image)
             batch_labels.append(label)
 
@@ -72,7 +76,7 @@ def predict_slices(model, slice_paths, batch_size, device):
         predictions.extend(pred)
         labels.extend(batch_labels)
 
-    return np.stack(predictions), np.stack(labels).astype(np.uint8), spacing
+    return np.stack(predictions), np.stack(labels).astype(np.uint8), spacing, phase
 
 
 def main():
@@ -100,8 +104,16 @@ def main():
 
     rows = []
     for (patient, frame), slice_paths in tqdm(groups.items(), desc="evaluate 2d volumes"):
-        prediction, target, spacing = predict_slices(model, slice_paths, args.batch_size, device)
-        rows.extend(volume_metrics(prediction, target, spacing, patient=patient, frame=frame, source="2d_reconstruction"))
+        prediction, target, spacing, phase = predict_slices(model, slice_paths, args.batch_size, device)
+        rows.extend(volume_metrics(
+            prediction,
+            target,
+            spacing,
+            patient=patient,
+            frame=frame,
+            phase=phase,
+            source="2d_reconstruction",
+        ))
 
     summary = summarize_rows(rows)
     output_dir = args.output_dir or (Path(args.run_dir) / f"evaluation_2d_{args.split}")
@@ -109,6 +121,7 @@ def main():
         "run_dir": args.run_dir,
         "checkpoint": checkpoint_path,
         "model": model_name,
+        "postprocessing": LARGEST_COMPONENT_POSTPROCESSING,
         "data_dir": data_dir,
         "split": args.split,
         "device": str(device),

@@ -23,6 +23,9 @@ CLASS_NAMES = {
     3: "LV",
 }
 
+FOREGROUND_CLASS_IDS = tuple(class_id for class_id in CLASS_NAMES if class_id != 0)
+LARGEST_COMPONENT_POSTPROCESSING = "largest_connected_component_per_class"
+
 
 def get_patient_id(path):
     match = re.search(r"patient(\d+)", path.stem)
@@ -46,6 +49,13 @@ def get_slice_index(path):
         if "slice_index" in h5_file.attrs:
             return int(h5_file.attrs["slice_index"])
     raise ValueError(f"Could not parse slice index from {path}")
+
+
+def read_phase_or_unknown(h5_file):
+    phase = h5_file.attrs.get("phase", "unknown")
+    if isinstance(phase, bytes):
+        phase = phase.decode("utf-8")
+    return str(phase)
 
 
 def read_config(run_dir):
@@ -205,7 +215,31 @@ def class_metrics(prediction, target, spacing, class_id):
     }
 
 
-def volume_metrics(prediction, target, spacing, patient, frame=None, source=None):
+def keep_largest_connected_component(mask):
+    if not mask.any():
+        return mask
+
+    structure = ndimage.generate_binary_structure(mask.ndim, 1)
+    labels, num_labels = ndimage.label(mask, structure=structure)
+    if num_labels <= 1:
+        return mask
+
+    component_sizes = np.bincount(labels.ravel())
+    component_sizes[0] = 0
+    largest_label = int(component_sizes.argmax())
+    return labels == largest_label
+
+
+def keep_largest_connected_components_per_class(prediction, class_ids=FOREGROUND_CLASS_IDS):
+    postprocessed = np.zeros_like(prediction)
+    for class_id in class_ids:
+        largest_component = keep_largest_connected_component(prediction == class_id)
+        postprocessed[largest_component] = class_id
+    return postprocessed
+
+
+def volume_metrics(prediction, target, spacing, patient, frame=None, phase=None, source=None):
+    prediction = keep_largest_connected_components_per_class(prediction)
     rows = []
     for class_id, class_name in CLASS_NAMES.items():
         if class_id == 0:
@@ -215,6 +249,7 @@ def volume_metrics(prediction, target, spacing, patient, frame=None, source=None
             {
                 "patient": patient,
                 "frame": frame,
+                "phase": phase,
                 "source": source,
                 "class_id": class_id,
                 "class_name": class_name,

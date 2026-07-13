@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mean_dice": 0.8149388910930025,
-    "mean_assd_mm": 1.187370382702077,
-    "mean_hd_mm": 29.920739044415168,
+    "mean_dice": 0.8176197379873086,
+    "mean_assd_mm": 1.139432124851114,
+    "mean_hd_mm": 10.238310805047265,
     "volumes": 40,
     "class_rows": 120
   },
@@ -10,6 +10,7 @@
     "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_dice_loss",
     "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_dice_loss\\best_epoch_072.pt",
     "model": "unet2d_modified",
+    "postprocessing": "largest_connected_component_per_class",
     "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
     "split": "val",
     "device": "cuda",

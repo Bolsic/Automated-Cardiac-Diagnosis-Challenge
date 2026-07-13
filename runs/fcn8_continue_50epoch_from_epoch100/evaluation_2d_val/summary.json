@@ -1,8 +1,8 @@
 {
   "summary": {
-    "mean_dice": 0.8482981018187644,
-    "mean_assd_mm": 0.7605594590476792,
-    "mean_hd_mm": 15.313053721556821,
+    "mean_dice": 0.8498268858364589,
+    "mean_assd_mm": 0.6736329203085085,
+    "mean_hd_mm": 7.366786999185451,
     "volumes": 40,
     "class_rows": 120
   },
@@ -10,6 +10,7 @@
     "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\fcn8_continue_50epoch_from_epoch100",
     "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\fcn8_continue_50epoch_from_epoch100\\best_epoch_004.pt",
     "model": "fcn8",
+    "postprocessing": "largest_connected_component_per_class",
     "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
     "split": "val",
     "device": "cuda",

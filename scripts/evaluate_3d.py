@@ -7,10 +7,12 @@ import torch
 from tqdm import tqdm
 
 from evaluate_common import (
+    LARGEST_COMPONENT_POSTPROCESSING,
     get_frame_number,
     get_patient_id,
     load_model,
     patient_filter_from_config,
+    read_phase_or_unknown,
     read_spacing_or_default,
     save_evaluation,
     summarize_rows,
@@ -62,13 +64,14 @@ def main():
             image = h5_file["image"][:].astype(np.float32)
             target = h5_file["label"][:].astype(np.uint8)
             spacing = read_spacing_or_default(h5_file, ndim=3)
+            phase = read_phase_or_unknown(h5_file)
 
         tensor = torch.from_numpy(image[None, None, :, :, :]).to(device)
         with torch.no_grad():
             logits = model(tensor)
             prediction = torch.argmax(logits, dim=1).squeeze(0).cpu().numpy().astype(np.uint8)
 
-        rows.extend(volume_metrics(prediction, target, spacing, patient=patient, frame=frame, source=path.name))
+        rows.extend(volume_metrics(prediction, target, spacing, patient=patient, frame=frame, phase=phase, source=path.name))
 
     summary = summarize_rows(rows)
     output_dir = args.output_dir or (Path(args.run_dir) / f"evaluation_3d_{args.split}")
@@ -76,6 +79,7 @@ def main():
         "run_dir": args.run_dir,
         "checkpoint": checkpoint_path,
         "model": model_name,
+        "postprocessing": LARGEST_COMPONENT_POSTPROCESSING,
         "data_dir": data_dir,
         "split": args.split,
         "device": str(device),
