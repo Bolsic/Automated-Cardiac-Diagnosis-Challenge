@@ -58,7 +58,9 @@ saved_models/
 model_artifacts/
 outputs/
 predictions/
-results/
+results/*
+!results/README.md
+!results/*.csv
 wandb/
 mlruns/
 *.ckpt

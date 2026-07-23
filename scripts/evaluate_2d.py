@@ -126,6 +126,8 @@ def main():
         "split": args.split,
         "device": str(device),
         "volumes_evaluated": len(groups),
+        "distance_units": "mm",
+        "spacing_source": "HDF5 spacing_zyx metadata",
     }
     metrics_path, summary_path = save_evaluation(output_dir, rows, summary, metadata)
     print(f"Saved metrics: {metrics_path}")

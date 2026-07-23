@@ -7,13 +7,15 @@
     "class_rows": 120
   },
   "metadata": {
-    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet3d",
-    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet3d\\best_epoch_097.pt",
+    "run_dir": "runs/unet3d",
+    "checkpoint": "runs/unet3d/best_epoch_097.pt",
     "model": "unet3d",
     "postprocessing": "largest_connected_component_per_class",
-    "data_dir": "outputs\\acdc_preprocessed_3d\\ACDC_training_volumes",
+    "data_dir": "outputs/acdc_preprocessed_3d/ACDC_training_volumes",
     "split": "val",
     "device": "cuda",
-    "volumes_evaluated": 40
+    "volumes_evaluated": 40,
+    "distance_units": "preprocessed voxels",
+    "spacing_source": "historical unit-spacing fallback; not physical millimetres"
   }
 }

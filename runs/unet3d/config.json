@@ -1,7 +1,7 @@
 {
   "args": {
-    "data_dir": "outputs\\acdc_preprocessed_3d\\ACDC_training_volumes",
-    "run_dir": "runs\\unet3d",
+    "data_dir": "outputs/acdc_preprocessed_3d/ACDC_training_volumes",
+    "run_dir": "runs/unet3d",
     "weights": null,
     "epochs": 100,
     "batch_size": 1,

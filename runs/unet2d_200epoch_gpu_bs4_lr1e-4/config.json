@@ -1,7 +1,7 @@
 {
   "args": {
-    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
-    "run_dir": "runs\\unet2d_200epoch_gpu_bs4_lr1e-4",
+    "data_dir": "outputs/acdc_preprocessed_2d/ACDC_training_slices",
+    "run_dir": "runs/unet2d_200epoch_gpu_bs4_lr1e-4",
     "weights": null,
     "epochs": 200,
     "batch_size": 4,

@@ -7,13 +7,15 @@
     "class_rows": 120
   },
   "metadata": {
-    "run_dir": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_weighted_ce",
-    "checkpoint": "c:\\Users\\User\\Desktop\\VladanBasic\\Automated-Cardiac-Diagnosis-Challenge\\runs\\unet2d_modified_100epoch_weighted_ce\\best_epoch_066.pt",
+    "run_dir": "runs/unet2d_modified_100epoch_weighted_ce",
+    "checkpoint": "runs/unet2d_modified_100epoch_weighted_ce/best_epoch_066.pt",
     "model": "unet2d_modified",
     "postprocessing": "largest_connected_component_per_class",
-    "data_dir": "outputs\\acdc_preprocessed_2d\\ACDC_training_slices",
+    "data_dir": "outputs/acdc_preprocessed_2d/ACDC_training_slices",
     "split": "val",
     "device": "cuda",
-    "volumes_evaluated": 40
+    "volumes_evaluated": 40,
+    "distance_units": "preprocessed voxels",
+    "spacing_source": "historical unit-spacing fallback; not physical millimetres"
   }
 }

@@ -275,8 +275,12 @@ def summarize_rows(rows):
 def read_spacing_or_default(h5_file, ndim):
     try:
         spacing = read_spacing_zyx(h5_file)
-    except KeyError:
-        spacing = np.ones(3, dtype=np.float32)
+    except KeyError as error:
+        raise ValueError(
+            "Physical spacing metadata is required for ASSD and Hausdorff "
+            "distance. Recreate the HDF5 data with the spacing-aware "
+            "conversion and preprocessing scripts."
+        ) from error
     if ndim == 2:
         return np.asarray(spacing[-2:], dtype=np.float32)
     return np.asarray(spacing, dtype=np.float32)

@@ -1,0 +1,5 @@
+model,run,mean_dice,rv_dice,myocardium_dice,lv_dice,validation_patients,validation_volumes
+Modified 2D U-Net,unet2d_modified_100epoch_weighted_ce,0.875247,0.859272,0.845803,0.920667,20,40
+Anisotropic 3D U-Net,unet3d,0.862297,0.841367,0.817203,0.928322,20,40
+2D U-Net,unet2d_200epoch_gpu_bs4_lr1e-4,0.861948,0.848005,0.832748,0.905091,20,40
+FCN-8,fcn8_100epoch_gpu_bs16_lr1e-3,0.846501,0.824935,0.802204,0.912365,20,40

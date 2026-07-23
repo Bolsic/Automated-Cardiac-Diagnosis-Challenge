@@ -20,7 +20,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from models import FCN8
 from acdc_h5 import as_float_list, read_spacing_zyx
 from training_losses import add_loss_arguments, build_loss
-from training_utils import add_scheduler_arguments, build_scheduler, diagnosis_counts, get_patient_id, split_by_patient
+from training_utils import add_scheduler_arguments, build_scheduler, diagnosis_counts, split_by_patient
 
 
 # ---------------------------------------------------------------------------

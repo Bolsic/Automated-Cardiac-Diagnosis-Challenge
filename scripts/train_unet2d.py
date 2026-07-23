@@ -24,7 +24,6 @@ from training_utils import (
     add_scheduler_arguments,
     build_scheduler,
     diagnosis_counts,
-    get_patient_id,
     split_by_patient,
 )
 
