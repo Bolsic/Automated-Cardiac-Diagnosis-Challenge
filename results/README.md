@@ -9,11 +9,8 @@ README. Full epoch histories, configurations, and per-volume rows remain in
   2D U-Net
 
 All Dice values are computed on 40 reconstructed validation volumes from 20
-patients. They are not official ACDC test-set scores.
+patients.
 
-Historical distance columns under `runs/` used unit spacing because those
-preprocessed files lacked physical spacing metadata. They are retained for
-provenance but intentionally omitted from the curated comparison.
 
 ## Training figures
 

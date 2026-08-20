@@ -83,4 +83,14 @@ ACDC*
 
 # Project specific
 papers/
+izvestaj-primer.pdf
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/izvestaj.tex
+report/figures/
 python*

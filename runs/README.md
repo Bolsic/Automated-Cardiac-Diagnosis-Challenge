@@ -18,6 +18,4 @@ Each run includes:
 - `evaluation_*_val/summary.json`: aggregate metrics and evaluation provenance
 
 Model checkpoints are intentionally excluded from Git because of their size.
-The cached historical evaluation files are evidence for the published Dice
-results, but their distance columns used unit spacing rather than physical
-millimetres. New evaluations require spacing-aware HDF5 data.
+
