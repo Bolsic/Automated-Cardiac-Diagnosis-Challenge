@@ -1,0 +1,26 @@
+{
+  "summary": {
+    "mean_dice": 0.8933608097738416,
+    "mean_assd_mm": 0.8937017641013817,
+    "mean_hd_mm": 10.563873483497252,
+    "volumes": 100,
+    "class_rows": 300
+  },
+  "metadata": {
+    "model": "fcn8",
+    "checkpoints": [
+      "runs\\fcn8_cv\\fold_0\\best_epoch_100.pt",
+      "runs\\fcn8_cv\\fold_1\\best_epoch_094.pt",
+      "runs\\fcn8_cv\\fold_2\\best_epoch_090.pt",
+      "runs\\fcn8_cv\\fold_3\\best_epoch_079.pt",
+      "runs\\fcn8_cv\\fold_4\\best_epoch_048.pt"
+    ],
+    "data_dir": "outputs\\acdc_preprocessed_2d_spacing\\fcn8\\ACDC_testing_slices",
+    "patients": 50,
+    "volumes_evaluated": 100,
+    "ensemble": "mean_softmax_probability",
+    "postprocessing": "largest_connected_component_per_class",
+    "distance_units": "mm",
+    "device": "cuda:0"
+  }
+}

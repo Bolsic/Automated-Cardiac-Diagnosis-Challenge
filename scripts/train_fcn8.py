@@ -21,6 +21,7 @@ from models import FCN8
 from acdc_h5 import as_float_list, read_spacing_zyx
 from training_losses import add_loss_arguments, build_loss
 from training_utils import add_scheduler_arguments, build_scheduler, diagnosis_counts, split_by_patient
+from cross_validation_training import run_cross_validation
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +128,8 @@ def run_epoch(model, loader, criterion, optimizer, device, num_classes, train):
     for images, labels in tqdm(loader, desc=description, leave=False):
         images = images.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
+        if not images.is_cuda or not labels.is_cuda:
+            raise RuntimeError("Training and validation batches must reside on CUDA")
 
         if train:
             # Clear old gradients before computing this batch's gradient.
@@ -280,6 +283,11 @@ def parse_args():
         default=Path("outputs/acdc_preprocessed_2d_spacing/fcn8/ACDC_training_slices"),
     )
     parser.add_argument("--run-dir", type=Path, default=Path("runs/fcn8"))
+    parser.add_argument(
+        "--test-data-dir",
+        type=Path,
+        default=Path("outputs/acdc_preprocessed_2d_spacing/fcn8/ACDC_testing_slices"),
+    )
     parser.add_argument("--weights", type=Path, default=None, help="Optional model weights to load before training.")
 
     # Training settings. The optimizer defaults follow the paper.
@@ -297,7 +305,8 @@ def parse_args():
     add_scheduler_arguments(parser)
 
     # Validation split and reproducibility.
-    parser.add_argument("--val-fraction", type=float, default=0.2)
+    parser.add_argument("--num-folds", type=int, choices=[5], default=5)
+    parser.add_argument("--fold", type=int, choices=range(5), default=None)
     parser.add_argument("--seed", type=int, default=42)
 
     # Debug options for quick smoke tests.
@@ -311,7 +320,7 @@ def parse_args():
 # ---------------------------------------------------------------------------
 
 
-def main():
+def legacy_main():
     args = parse_args()
     training_start_time = time.perf_counter()
 
@@ -523,6 +532,27 @@ def main():
 
     total_seconds = time.perf_counter() - training_start_time
     print(f"\nTraining finished in {format_seconds(total_seconds)} ({total_seconds:.1f} seconds)")
+
+
+def main():
+    args = parse_args()
+    run_cross_validation(
+        args=args,
+        model_name="fcn8",
+        dimension=2,
+        model_factory=lambda: FCN8(
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            classifier_channels=args.classifier_channels,
+            use_batch_norm=True,
+        ),
+        dataset_factory=lambda files, train: ACDCSliceDataset(files),
+        run_epoch=run_epoch,
+        append_metrics=append_metrics,
+        save_single_epoch_checkpoint=save_single_epoch_checkpoint,
+        format_seconds=format_seconds,
+        load_starting_weights=load_starting_weights,
+    )
 
 
 if __name__ == "__main__":

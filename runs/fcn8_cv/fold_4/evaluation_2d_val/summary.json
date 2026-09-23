@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "mean_dice": 0.883103152040142,
+    "mean_assd_mm": 0.880394598416604,
+    "mean_hd_mm": 11.436711636033946,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "runs\\fcn8_cv\\fold_4",
+    "checkpoint": "runs\\fcn8_cv\\fold_4\\best_epoch_048.pt",
+    "model": "fcn8",
+    "postprocessing": "largest_connected_component_per_class",
+    "data_dir": "outputs\\acdc_preprocessed_2d_spacing\\fcn8\\ACDC_training_slices",
+    "split": "val",
+    "device": "cuda:0",
+    "volumes_evaluated": 40,
+    "distance_units": "mm",
+    "spacing_source": "HDF5 spacing_zyx metadata"
+  }
+}

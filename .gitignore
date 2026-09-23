@@ -50,6 +50,7 @@ data/
 datasets/
 raw/
 processed/
+database/
 #runs/
 logs/
 checkpoints/
