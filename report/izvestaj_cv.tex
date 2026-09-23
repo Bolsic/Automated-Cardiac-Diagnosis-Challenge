@@ -1,0 +1,302 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+\usepackage{polyglossia}
+\setdefaultlanguage[script=latin]{serbian}
+\usepackage[a4paper,top=2.4cm,bottom=2.4cm,left=2.6cm,right=2.4cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.18}
+\usepackage{microtype}
+\usepackage{graphicx}
+\graphicspath{{report/figures/}{report/figures_cv/}{docs/assets/}}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{amsmath,amssymb}
+\usepackage{siunitx}
+\sisetup{output-decimal-marker={,},group-separator={\,},group-minimum-digits=4}
+\usepackage{xcolor}
+\definecolor{etfblue}{RGB}{31,78,121}
+\definecolor{lightblue}{RGB}{220,230,241}
+\definecolor{softgray}{RGB}{245,246,248}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage[hidelinks,unicode]{hyperref}
+\hypersetup{pdftitle={Automatska segmentacija srčanih struktura na MR snimcima -- petostruka validacija},pdfauthor={Vladan Bašić},pdfsubject={Projekat iz Analize biomedicinske slike}}
+\captionsetup{font=small,labelfont=bf,justification=centering}
+\renewcommand{\figurename}{Sl.}
+\renewcommand{\tablename}{Tabela}
+\renewcommand{\contentsname}{SADRŽAJ}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\setlist[itemize]{nosep,leftmargin=1.2cm}
+\setcounter{tocdepth}{2}
+\newcommand{\LV}{\mathrm{LV}}
+\newcommand{\RV}{\mathrm{RV}}
+\newcommand{\Myo}{\mathrm{Myo}}
+\newcommand{\ED}{\mathrm{ED}}
+\newcommand{\ES}{\mathrm{ES}}
+\begin{document}
+\begin{titlepage}
+\thispagestyle{empty}
+\noindent
+\begin{minipage}[t]{0.18\textwidth}\vspace{0pt}\includegraphics[width=2.25cm]{ETFBg.png}\end{minipage}%
+\begin{minipage}[t]{0.58\textwidth}\vspace{0.15cm}\centering
+{\large Univerzitet u Beogradu\par}\vspace{0.12cm}{\large\bfseries Elektrotehnički fakultet\par}\vspace{0.12cm}{\normalsize Katedra za signale i sisteme\par}
+\end{minipage}%
+\begin{minipage}[t]{0.18\textwidth}\vspace{0.25cm}\raggedleft\includegraphics[width=2.25cm]{SIS.png}\end{minipage}
+\vfill
+\begin{center}
+{\LARGE\bfseries PROJEKAT\par}\vspace{0.35cm}
+{\large\itshape iz predmeta Analiza biomedicinske slike (13E054ABS)\par}
+\vspace{1.6cm}
+{\LARGE\bfseries Automatska segmentacija srčanih struktura na MR snimcima:\par}\vspace{0.25cm}
+{\LARGE\bfseries 2D i 3D neuronske mreže na ACDC bazi\par}
+\vspace{2.0cm}{\large\bfseries Student\par}\vspace{0.12cm}{\large Vladan Bašić, 2022/0395\par}
+\vspace{1.7cm}{\large\bfseries Predmetni nastavnik\par}\vspace{0.12cm}{\large prof. dr Milica Janković\par}
+\end{center}
+\vfill
+\begin{center}{\large\itshape Beograd, septembar 2026. godine}\end{center}
+\end{titlepage}
+\setcounter{page}{2}
+
+\section*{REZIME}
+\addcontentsline{toc}{section}{REZIME}
+U ovom projektu realizovan je postupak automatske segmentacije desne komore, miokarda i leve komore na kinematografskim MR snimcima srca u kratkoj osi. Postupak obuhvata konverziju NIfTI podataka u HDF5 uz očuvanje prostornog razmaka voksela i afine transformacije, resamplovanje, normalizaciju intenziteta, obuku neuronskih mreža i evaluaciju nakon rekonstrukcije celih trodimenzionih volumena. Posebna pažnja posvećena je promenljivoj i anizotropnoj rezoluciji ACDC baze.
+
+Upoređeni su FCN-8, standardni 2D U-Net, modifikovani 2D U-Net i anizotropni 3D U-Net. Umesto jedne fiksne podele, 100 označenih trening pacijenata podeljeno je deterministički na pet dijagnostički stratifikovanih foldova. U svakom foldu obučava se na 80, a validira na 20 pacijenata; svaka od pet dijagnostičkih grupa zastupljena je sa 16/4 pacijenta. Najveći srednji volumetrijski Dice koeficijent u unakrsnoj validaciji postiže standardni 2D U-Net, $0{,}9025\pm0{,}0064$. Njegov ansambl od pet modela postiže Dice $0{,}9109$ na odvojenih 50 test pacijenata.
+
+Metrike Dice, ASSD i Hausdorffovo rastojanje računaju se na rekonstruisanim volumenima, nakon zadržavanja najveće povezane komponente svake ciljne klase. Rastojanja se računaju sa fizičkim razmakom u milimetrima. Rezultati pokazuju da normalizacija fizičke skale i procena varijabilnosti između foldova daju strožiju i ponovljiviju procenu kvaliteta od jedne validacione podele.
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{UVOD}
+Kardiovaskularna magnetna rezonanca (CMR) omogućava neinvazivno sagledavanje anatomije i funkcije srca. Za određivanje zapremina komora, mase miokarda i ejekcione frakcije potrebno je precizno izdvojiti levu komoru (LV), desnu komoru (RV) i miokard (Myo). Krajnja dijastola (ED) odgovara najvećoj ispunjenosti komora, a krajnja sistola (ES) njihovoj najvećoj kontrakciji. Ako su $V_{ED}$ i $V_{ES}$ zapremine komore, ejekciona frakcija iznosi
+\begin{equation}
+EF=\frac{V_{ED}-V_{ES}}{V_{ED}}\cdot100\,\%.
+\end{equation}
+
+Ručno iscrtavanje kontura zahteva stručnost i vreme, pa automatska segmentacija svakom pikselu ili vokselu dodeljuje pozadinu, RV, miokard ili LV. Konvolucione neuronske mreže uče obeležja direktno iz slike i pogodne su za ovu gustu višeklasnu klasifikaciju \cite{litjens2017}. ACDC volumeni su anizotropni: in-plane razmak je približno $0{,}703$--$1{,}953$ mm, a razmak duž ose preseka $5$--$10$ mm. Zato 2D i anizotropni 3D pristupi predstavljaju različite kompromise između lokalnih detalja, prostornog konteksta i memorijskih zahteva \cite{baumgartner2017}.
+
+\section{METODOLOGIJA RADA}
+\subsection{Baza podataka i podela}
+Automatic Cardiac Diagnosis Challenge sadrži 150 cine-CMR pregleda sa ED i ES referencama za LV, RV i miokard \cite{bernard2018,acdcweb}. Sto pacijenata 001--100 korišćeno je isključivo za obuku i unakrsnu validaciju, dok 50 pacijenata 101--150 ostaje odvojeno za završnu lokalnu evaluaciju ansambla. Dijagnoze DCM, HCM, MINF, NOR i RV ravnomerno su zastupljene.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{dataset_reference_example.png}
+\caption{Primer trening volumena i ekspertske konture RV, miokarda i LV.}
+\label{fig:dataset-example}
+\end{figure}
+
+Pacijenti se dele sa semenom 42 na pet foldova. Svaki fold ima 80 pacijenata za obuku i 20 za validaciju, pri čemu su svi preseci i obe faze jednog pacijenta u istom foldu. Time se sprečava curenje informacija između obuke i validacije i omogućava procena varijabilnosti rezultata.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.70\textwidth]{cv_fold_composition.png}
+\caption{Broj validacionih pacijenata po dijagnozi u svakom foldu.}
+\label{fig:fold-composition}
+\end{figure}
+
+\subsection{Konverzija, prostorni razmak i predobrada}
+NIfTI slike i maske prevode se u HDF5 uz čuvanje identifikatora pacijenta, dijagnoze, faze, oblika volumena, afine transformacije i razmaka u redosledu $Z\times Y\times X$. Prostorni razmak normalizuje fizičku skalu anatomije; ne uvodi se kao dodatni ulazni kanal mreže.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{spacing_distribution.png}
+\caption{Raspodela izvornog razmaka voksela trening pacijenata. Crvene linije označavaju ciljne razmake 2D i 3D predobrade.}
+\label{fig:spacing}
+\end{figure}
+
+Za 2D mreže svaki presek se resampluje u ravni na $1{,}37\times1{,}37$ mm; FCN-8 koristi $224\times224$, a oba U-Net modela $396\times396$ piksela. Za 3D model volumen se resampluje na $5{,}0\times2{,}5\times2{,}5$ mm i centralno dovodi na $60\times204\times204$ voksela. Na slikama se koristi linearna, a na maskama interpolacija najbližeg suseda. Intenziteti se standardizuju po slici, dok se preveliki ulazi centralno isecaju, a manji dopunjuju nulama.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+node distance=8mm and 9mm,
+block/.style={draw=etfblue,rounded corners,fill=lightblue,align=center,minimum height=1.05cm,text width=2.7cm,font=\small},
+smallblock/.style={draw=black!55,rounded corners,fill=softgray,align=center,minimum height=0.95cm,text width=2.55cm,font=\small},
+arrow/.style={-{Stealth[length=2.2mm]},thick,draw=etfblue}]
+\node[block] (nifti) {ACDC NIfTI\\slike i maske};
+\node[block,right=of nifti] (hdf5) {HDF5 konverzija\\i metapodaci};
+\node[smallblock,above right=7mm and 10mm of hdf5] (prep2) {2D predobrada\\$224^2$ / $396^2$};
+\node[smallblock,below right=7mm and 10mm of hdf5] (prep3) {3D predobrada\\$60\times204\times204$};
+\node[smallblock,right=of prep2] (models2) {FCN-8 i 2D\\U-Net modeli};
+\node[smallblock,right=of prep3] (models3) {anizotropni\\3D U-Net};
+\node[block,right=18mm of models2,yshift=-14mm] (volume) {rekonstrukcija volumena\\i najveće komponente};
+\node[block,right=of volume] (metrics) {Dice, ASSD, HD\\i analiza rezultata};
+\draw[arrow] (nifti)--(hdf5); \draw[arrow] (hdf5)--(prep2); \draw[arrow] (hdf5)--(prep3);
+\draw[arrow] (prep2)--(models2); \draw[arrow] (prep3)--(models3);
+\draw[arrow] (models2)--(volume); \draw[arrow] (models3)--(volume); \draw[arrow] (volume)--(metrics);
+\end{tikzpicture}}
+\caption{Blok dijagram spacing-aware sistema za segmentaciju.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Arhitekture, obučavanje i metrike}
+FCN-8 koristi VGG-stil blokove, preskočne veze sa pool3 i pool4 nivoa i završno nadodabiranje faktorom osam \cite{long2015}. Standardni 2D U-Net ima simetrični enkoder--dekoder sa nadovezivanjem mapa obeležja \cite{ronneberger2015}. Modifikovani 2D U-Net zadržava isti enkoder, ali transponovane konvolucije sužava na četiri kanala, čime se broj parametara smanjuje sa 31,04 na 25,19 miliona. Anizotropni 3D U-Net sažima duž ose preseka samo na prvom nivou, a zatim sa korakom $(1,2,2)$ \cite{cicek2016}.
+
+\begin{table}[H]
+\centering
+\caption{Podešavanja spacing-aware eksperimenata.}
+\label{tab:training}
+\begin{tabular}{lrrrrl}
+\toprule
+Model & Epohe & Mini-grupa & Korak učenja & Parametri & Gubitak \\
+\midrule
+FCN-8 & 100 & 4 & 0,01 & \num{41474508} & CE \\
+2D U-Net & 100 & 2 & 0,01 & \num{31044484} & CE \\
+mod. 2D U-Net & 100 & 2 & 0,01 & \num{25188212} & ponderisana CE \\
+mod. 3D U-Net & 100 & 1 & 0,01 & \num{5476356} & CE \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Svi modeli koriste Adam i ReduceLROnPlateau raspored koraka. Najbolji kontrolni punkt svakog folda bira se prema validacionom foreground Dice rezultatu. Za završnu procenu na pacijentima 101--150 prosečavaju se softmax verovatnoće pet najboljih kontrolnih punktova istog modela, zatim se primenjuju argmax i postobrada.
+
+Predikcije 2D preseka grupišu se po pacijentu i okviru, uređuju po položaju i rekonstruišu u volumen. Za svaku foreground klasu zadržava se najveća šest-susedna povezana komponenta. Dice meri preklapanje:
+\begin{equation}
+Dice(P,G)=\frac{2|P\cap G|}{|P|+|G|}.
+\end{equation}
+ASSD meri prosečnu simetričnu udaljenost površina, a HD najveću udaljenost između površina \cite{taha2015}. Oba rastojanja računaju se sa stvarnim $Z/Y/X$ razmakom i prijavljuju u milimetrima. Stoga su volumetrijske metrike posle rekonstrukcije autoritativne; epoch-level 2D Dice služi samo za praćenje obuke.
+
+\section{REZULTATI I DISKUSIJA}
+\subsection{Petostruka unakrsna validacija}
+Tabela~\ref{tab:cv-main} prikazuje srednju vrednost i standardnu devijaciju preko pet foldova. Standardni 2D U-Net ostvaruje najbolji srednji Dice i najmanji ASSD i HD. Modifikovani 2D U-Net ima skoro isti Dice, ali nešto veće granične udaljenosti. Anizotropni 3D U-Net ima najveću varijabilnost i slabije rezultate, naročito za RV i miokard.
+
+\begin{table}[H]
+\centering
+\caption{Makro rezultati na pet validacionih foldova; srednja vrednost $\pm$ SD.}
+\label{tab:cv-main}
+\begin{tabular}{lrrr}
+\toprule
+Model & Dice & ASSD [mm] & HD [mm] \\
+\midrule
+FCN-8 & $0,8810\pm0,0105$ & $0,9210\pm0,1699$ & $11,8831\pm1,1820$ \\
+2D U-Net & \textbf{$0,9025\pm0,0064$} & \textbf{$0,7532\pm0,1108$} & \textbf{$10,5616\pm0,7197$} \\
+mod. 2D U-Net & $0,9006\pm0,0043$ & $0,7807\pm0,0437$ & $10,5887\pm0,4396$ \\
+mod. 3D U-Net & $0,8407\pm0,0176$ & $1,8843\pm0,3567$ & $13,2831\pm0,8333$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Dice po anatomskim strukturama u petostrukoj validaciji; srednja vrednost $\pm$ SD.}
+\label{tab:cv-class}
+\begin{tabular}{lrrr}
+\toprule
+Model & RV & Miokard & LV \\
+\midrule
+FCN-8 & $0,8613\pm0,0137$ & $0,8557\pm0,0112$ & $0,9261\pm0,0103$ \\
+2D U-Net & $0,8843\pm0,0112$ & $0,8838\pm0,0060$ & \textbf{$0,9393\pm0,0074$} \\
+mod. 2D U-Net & \textbf{$0,8858\pm0,0054$} & $0,8803\pm0,0067$ & $0,9357\pm0,0034$ \\
+mod. 3D U-Net & $0,8197\pm0,0228$ & $0,8088\pm0,0184$ & $0,8937\pm0,0168$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{cv_model_comparison.png}
+\caption{Poređenje modela: makro foreground Dice i Dice po strukturama. Tačke i trake greške prikazuju pet foldova.}
+\label{fig:cv-models}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{cv_fold_metric_spread.png}
+\caption{Raspodela volumetrijskih metrika između pet foldova.}
+\label{fig:cv-spread}
+\end{figure}
+
+\subsection{Završna evaluacija ansambla}
+Za svaki model je pet najboljih fold kontrolnih punktova objedinjeno prosekom softmax verovatnoća. Tabela~\ref{tab:test} prikazuje rezultat na 50 lokalno označenih test pacijenata, odnosno 100 ED/ES volumena. Standardni 2D U-Net zadržava prednost na odvojenom skupu. Ovi rezultati su odvojeni od CV rezultata: oni predstavljaju završnu lokalnu proveru, a ne zvaničnu slepu evaluaciju ACDC izazova.
+
+\begin{table}[H]
+\centering
+\caption{Petomodelni ansambl na 100 odvojenih test volumena.}
+\label{tab:test}
+\begin{tabular}{lrrr}
+\toprule
+Model & Dice & ASSD [mm] & HD [mm] \\
+\midrule
+FCN-8 & 0,8934 & 0,8937 & 10,5639 \\
+2D U-Net & \textbf{0,9109} & \textbf{0,7613} & \textbf{9,8436} \\
+mod. 2D U-Net & 0,9085 & 0,8096 & 9,8810 \\
+mod. 3D U-Net & 0,8583 & 1,4895 & 11,4728 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Tok obučavanja i kvalitativna analiza}
+Sl.~\ref{fig:learning} prikazuje srednje vrednosti validacionog Dice koeficijenta po presecima i njegovu standardnu devijaciju kroz foldove. Krive služe za proveru konvergencije i nisu zamena za volumetrijsku evaluaciju iz Tabela~\ref{tab:cv-main} i \ref{tab:test}. Najveći skokovi kod 3D mreže saglasni su sa malom mini-grupom i manjim brojem volumetrijskih uzoraka.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{cv_learning_curves.png}
+\caption{Srednji validacioni foreground Dice po presecima tokom obuke; osenčeni pojas je SD između foldova.}
+\label{fig:learning}
+\end{figure}
+
+\IfFileExists{report/figures_cv/unet2d_oof_prediction_comparison.png}{%
+\begin{figure}[H]
+\centering
+\includegraphics[height=0.80\textheight]{unet2d_oof_prediction_comparison.png}
+\caption{Deterministički izabrani ED volumen sa medijanskim out-of-fold Dice rezultatom: MR preseci, predikcija standardnog 2D U-Net-a i ekspertska maska.}
+\end{figure}
+}{%
+\noindent\textit{Kvalitativni out-of-fold prikaz generiše se na računaru koji poseduje pet najboljih kontrolnih punktova pomoću \texttt{scripts/visualize\_cv\_oof\_predictions.py}. U ovom radnom prostoru kontrolni punktovi nisu prisutni, pa se zastarela slika predikcija iz ranijeg eksperimenta ne koristi.}\par
+}
+
+\subsection{Poređenje sa izvornim radom}
+Poređenje sa Baumgartnerom i saradnicima u Tabeli~\ref{tab:paper} ima samo kontekstualni karakter. Objavljeni rezultati prosečavaju ED i ES protokolom koji nije identičan ovde korišćenoj predobradi, izboru hiperparametara i evaluaciji pune Hausdorffove udaljenosti. Ipak, odnos 2D i 3D pristupa ostaje sličan: 2D modeli dobro čuvaju detalje u ravni, dok 3D model plaća cenu anizotropije i većih memorijskih zahteva.
+
+\begin{table}[H]
+\centering
+\caption{CV Dice ovog projekta i ED/ES prosek rezultata izvornog rada \cite{baumgartner2017}; poređenje je orijentaciono.}
+\label{tab:paper}
+\begin{tabular}{lrrr}
+\toprule
+Arhitektura & Ovaj projekat & Izvorni rad & Razlika \\
+\midrule
+FCN-8 & 0,881 & 0,902 & $-0,021$ \\
+2D U-Net & 0,902 & 0,911 & $-0,009$ \\
+modifikovani 2D U-Net & 0,901 & 0,914 & $-0,013$ \\
+anizotropni 3D U-Net & 0,841 & 0,859 & $-0,018$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ograničenja i mogućnosti unapređenja}
+Petostruka validacija sada meri varijabilnost između podela, ali pet foldova i dalje dele isti skup od 100 pacijenata, pa ne predstavljaju nezavisne kliničke studije. Lokalne reference za pacijente 101--150 omogućavaju strogo odvojenu evaluaciju ansambla, ali ne zamenjuju zvanično slepi ACDC protokol. Dalji rad treba da obuhvati augmentaciju, kombinovane Dice--CE gubitke, 95-procentni HD, analizu neuspešnih slučajeva, izračunavanje kliničkih zapremina i eksternu validaciju na drugim centrima.
+
+\section{ZAKLJUČAK}
+Realizovan je spacing-aware postupak za automatsku višeklasnu segmentaciju srčanih struktura na ACDC cine-MR snimcima. Prostorni metapodaci sačuvani su tokom konverzije, 2D i 3D ulazi normalizovani su na fizičku skalu, a kvalitet je procenjen na rekonstruisanim volumenima sa rastojanjima u milimetrima.
+
+Deterministička dijagnostički stratifikovana petostruka validacija daje robusniju procenu od prethodne pojedinačne podele. Standardni 2D U-Net postiže najbolji CV Dice $0{,}9025\pm0{,}0064$ i najbolji rezultat petomodelnog ansambla na odvojenim test pacijentima, Dice $0{,}9109$. Modifikovani 2D U-Net ostaje konkurentan uz manji broj parametara, dok anizotropni 3D U-Net pokazuje veći uticaj ograničenog broja volumetrijskih uzoraka. Projekat time pruža ponovljiv osnov za strožu validaciju i buduću kliničku analizu.
+
+\clearpage
+\section{LITERATURA}
+\begin{thebibliography}{99}
+\small
+\bibitem{bernard2018} O. Bernard, A. Lalande, C. Zotti, F. Cervenansky, et al., "Deep Learning Techniques for Automatic MRI Cardiac Multi-structures Segmentation and Diagnosis: Is the Problem Solved?", \textit{IEEE Transactions on Medical Imaging}, vol. 37, no. 11, str. 2514--2525, 2018. DOI: \url{https://doi.org/10.1109/TMI.2018.2837502}.
+\bibitem{baumgartner2017} C. F. Baumgartner, L. M. Koch, M. Pollefeys i E. Konukoglu, "An Exploration of 2D and 3D Deep Learning Techniques for Cardiac MR Image Segmentation", u \textit{STACOM 2017}, LNCS 10663, str. 111--119, 2018. \url{https://arxiv.org/abs/1709.04496}.
+\bibitem{litjens2017} G. Litjens, T. Kooi, B. E. Bejnordi, et al., "A survey on deep learning in medical image analysis", \textit{Medical Image Analysis}, vol. 42, str. 60--88, 2017. DOI: \url{https://doi.org/10.1016/j.media.2017.07.005}.
+\bibitem{long2015} J. Long, E. Shelhamer i T. Darrell, "Fully Convolutional Networks for Semantic Segmentation", u \textit{Proc. CVPR}, str. 3431--3440, 2015. \url{https://openaccess.thecvf.com/content_cvpr_2015/html/Long_Fully_Convolutional_Networks_2015_CVPR_paper.html}.
+\bibitem{ronneberger2015} O. Ronneberger, P. Fischer i T. Brox, "U-Net: Convolutional Networks for Biomedical Image Segmentation", u \textit{MICCAI}, LNCS 9351, str. 234--241, 2015. DOI: \url{https://doi.org/10.1007/978-3-319-24574-4_28}.
+\bibitem{cicek2016} Ö. Çiçek, A. Abdulkadir, S. S. Lienkamp, T. Brox i O. Ronneberger, "3D U-Net: Learning Dense Volumetric Segmentation from Sparse Annotation", u \textit{MICCAI}, LNCS 9901, str. 424--432, 2016. DOI: \url{https://doi.org/10.1007/978-3-319-46723-8_49}.
+\bibitem{taha2015} A. A. Taha i A. Hanbury, "Metrics for evaluating 3D medical image segmentation: analysis, selection, and tool", \textit{BMC Medical Imaging}, vol. 15, art. 29, 2015. DOI: \url{https://doi.org/10.1186/s12880-015-0068-x}.
+\bibitem{acdcweb} CREATIS, "Automated Cardiac Diagnosis Challenge (ACDC)", zvanična stranica baze i izazova. \url{https://www.creatis.insa-lyon.fr/Challenge/acdc/}. Pristupljeno: septembar 2026.
+\end{thebibliography}
+\end{document}
