@@ -1,0 +1,16 @@
+{
+  "fold": 2,
+  "patient": 2,
+  "frame": 1,
+  "phase": "ED",
+  "checkpoint": "runs\\unet2d_cv\\fold_2\\best_epoch_039.pt",
+  "dice": 0.9275761924569501,
+  "selection": "median foreground Dice among all out-of-fold ED volumes",
+  "slice_indices": [
+    0,
+    2,
+    4,
+    7,
+    9
+  ]
+}
