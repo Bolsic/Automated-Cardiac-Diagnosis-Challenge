@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "mean_dice": 0.8118313868870858,
+    "mean_assd_mm": 2.5448172011991335,
+    "mean_hd_mm": 14.001527378014531,
+    "volumes": 40,
+    "class_rows": 120
+  },
+  "metadata": {
+    "run_dir": "runs\\unet3d_cv\\fold_2",
+    "checkpoint": "runs\\unet3d_cv\\fold_2\\best_epoch_088.pt",
+    "model": "unet3d",
+    "postprocessing": "largest_connected_component_per_class",
+    "data_dir": "outputs\\acdc_preprocessed_3d_spacing\\ACDC_training_volumes",
+    "split": "val",
+    "device": "cuda:0",
+    "volumes_evaluated": 40,
+    "distance_units": "mm",
+    "spacing_source": "HDF5 spacing_zyx metadata"
+  }
+}

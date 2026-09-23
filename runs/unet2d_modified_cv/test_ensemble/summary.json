@@ -1,0 +1,26 @@
+{
+  "summary": {
+    "mean_dice": 0.9084748528177194,
+    "mean_assd_mm": 0.809580097186209,
+    "mean_hd_mm": 9.881017945342,
+    "volumes": 100,
+    "class_rows": 300
+  },
+  "metadata": {
+    "model": "unet2d_modified",
+    "checkpoints": [
+      "runs\\unet2d_modified_cv\\fold_0\\best_epoch_050.pt",
+      "runs\\unet2d_modified_cv\\fold_1\\best_epoch_044.pt",
+      "runs\\unet2d_modified_cv\\fold_2\\best_epoch_054.pt",
+      "runs\\unet2d_modified_cv\\fold_3\\best_epoch_056.pt",
+      "runs\\unet2d_modified_cv\\fold_4\\best_epoch_042.pt"
+    ],
+    "data_dir": "outputs\\acdc_preprocessed_2d_spacing\\unet2d\\ACDC_testing_slices",
+    "patients": 50,
+    "volumes_evaluated": 100,
+    "ensemble": "mean_softmax_probability",
+    "postprocessing": "largest_connected_component_per_class",
+    "distance_units": "mm",
+    "device": "cuda:0"
+  }
+}

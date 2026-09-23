@@ -6,7 +6,10 @@ import numpy as np
 from scipy.ndimage import zoom
 from tqdm import tqdm
 
-from acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
+try:
+    from acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
+except ModuleNotFoundError:
+    from scripts.acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
 
 
 def resample_to_spacing(volume, source_spacing_zyx, target_spacing_zyx, order):
@@ -50,6 +53,14 @@ def preprocess_volume(source_path, output_path, target_depth, target_height, tar
         image = source["image"][:].astype(np.float32)
         label = source["label"][:].astype(np.uint8) if "label" in source else None
         source_spacing_zyx = read_spacing_zyx(source)
+        if image.ndim != 3 or (label is not None and label.shape != image.shape):
+            raise ValueError(f"Expected matching 3D image/label arrays in {source_path}")
+        if (
+            source_spacing_zyx.shape != (3,)
+            or not np.all(np.isfinite(source_spacing_zyx))
+            or np.any(source_spacing_zyx <= 0)
+        ):
+            raise ValueError(f"Invalid spacing metadata in {source_path}: {source_spacing_zyx}")
 
         image = resample_to_spacing(image, source_spacing_zyx, target_spacing_zyx, order=1)
         image = normalize_image(image)
@@ -76,8 +87,9 @@ def preprocess_volume(source_path, output_path, target_depth, target_height, tar
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Export ACDC preprocessed volumes for 3D U-Net training.")
-    parser.add_argument("--input-dir", type=Path, default=Path("outputs/acdc_h5_with_metadata/ACDC_training_volumes"))
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/acdc_preprocessed_3d_spacing/ACDC_training_volumes"))
+    parser.add_argument("--split", choices=["training", "testing"], default="training")
+    parser.add_argument("--input-dir", type=Path, default=None)
+    parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--target-depth", type=int, default=60)
     parser.add_argument("--target-height", type=int, default=204)
     parser.add_argument("--target-width", type=int, default=204)
@@ -90,18 +102,20 @@ def parse_args():
 
 def main():
     args = parse_args()
-    files = sorted(args.input_dir.glob("*.h5"))
+    input_dir = args.input_dir or Path(f"outputs/acdc_h5_with_metadata/ACDC_{args.split}_volumes")
+    output_dir = args.output_dir or Path(f"outputs/acdc_preprocessed_3d_spacing/ACDC_{args.split}_volumes")
+    files = sorted(input_dir.glob("*.h5"))
     if args.max_files is not None:
         files = files[: args.max_files]
     if not files:
-        raise FileNotFoundError(f"No .h5 files found in {args.input_dir}")
+        raise FileNotFoundError(f"No .h5 files found in {input_dir}")
 
     target_spacing_zyx = np.asarray(
         [args.target_spacing_z, args.target_spacing_y, args.target_spacing_x],
         dtype=np.float32,
     )
     for source_path in tqdm(files, desc="preprocess 3d"):
-        output_path = args.output_dir / source_path.name
+        output_path = output_dir / source_path.name
         preprocess_volume(
             source_path,
             output_path,
@@ -111,7 +125,7 @@ def main():
             target_spacing_zyx=target_spacing_zyx,
         )
 
-    print(f"Exported {len(files)} volumes to {args.output_dir}")
+    print(f"Exported {len(files)} volumes to {output_dir}")
 
 
 if __name__ == "__main__":

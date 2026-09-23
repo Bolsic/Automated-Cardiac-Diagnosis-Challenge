@@ -32,7 +32,7 @@ Download ACDC from the
 The expected input layout is:
 
 ```text
-ACDC/database/
+database/
 ├── training/
 │   ├── patient001/
 │   └── ...
@@ -68,6 +68,8 @@ In-plane spacing is resampled to 1.37 × 1.37 mm.
 ```bash
 python scripts/preprocess_acdc_2d.py --architecture fcn8
 python scripts/preprocess_acdc_2d.py --architecture unet2d
+python scripts/preprocess_acdc_2d.py --architecture fcn8 --split testing
+python scripts/preprocess_acdc_2d.py --architecture unet2d --split testing
 ```
 
 The 3D workflow resamples to 5.0 × 2.5 × 2.5 mm in `Z × Y × X` order and
@@ -75,15 +77,18 @@ crops/pads to 60 × 204 × 204:
 
 ```bash
 python scripts/preprocess_acdc_3d.py
+python scripts/preprocess_acdc_3d.py --split testing
 ```
 
 Images are normalized to zero mean and unit variance. Labels use nearest
-neighbour interpolation. Training scripts make a seeded, diagnosis-stratified
-split at patient level.
+neighbour interpolation. Training uses patients 001–100 for seeded,
+diagnosis-stratified five-fold validation. Patients 101–150 remain untouched
+until the final test ensemble is evaluated.
 
 ## 5. Train
 
-Representative commands:
+Representative commands (each command trains all five folds and then evaluates
+the five-model ensemble on the held-out testing patients):
 
 ```bash
 python scripts/train_fcn8.py \
@@ -101,13 +106,24 @@ python scripts/train_unet3d.py \
 ```
 
 Every run stores its arguments and patient split in `config.json`, an
-epoch-level `metrics.csv`, and best/latest checkpoints. Use `--num-workers 0`
-if multiprocessing is unavailable.
+epoch-level `metrics.csv`, and best/latest checkpoints under `fold_0` through
+`fold_4`. The run root contains fold assignments, cross-validation mean/standard
+deviation, and `test_ensemble/` metrics. A complete four-architecture experiment
+trains 20 models. Use `--num-workers 0` if multiprocessing is unavailable.
+
+Run only one fold, for example when scheduling folds as separate GPU jobs:
+
+```bash
+python scripts/train_unet2d.py --fold 2 --run-dir runs/unet2d
+```
+
+Training is GPU-only. Every trainer exits before creating run artifacts when a
+CUDA device is unavailable.
 
 Quick 2D smoke test:
 
 ```bash
-python scripts/train_unet2d_modified.py \
+python scripts/train_unet2d_modified.py --fold 0 \
   --epochs 1 --batch-size 1 --num-workers 0 --base-channels 8 \
   --max-train-samples 2 --max-val-samples 2 \
   --run-dir /tmp/acdc_unet2d_smoke
@@ -116,7 +132,7 @@ python scripts/train_unet2d_modified.py \
 Quick 3D smoke test:
 
 ```bash
-python scripts/train_unet3d.py \
+python scripts/train_unet3d.py --fold 0 \
   --epochs 1 --batch-size 1 --num-workers 0 --base-channels 4 \
   --patch-depth 16 --patch-height 32 --patch-width 32 \
   --max-train-samples 1 --max-val-samples 1 \
@@ -130,14 +146,14 @@ volume per patient/frame before metrics are calculated:
 
 ```bash
 python scripts/evaluate_2d.py \
-  --run-dir runs/unet2d_modified_weighted_ce \
+  --run-dir runs/unet2d_modified_weighted_ce/fold_0 \
   --model unet2d_modified --split val
 ```
 
 Evaluate the 3D network directly:
 
 ```bash
-python scripts/evaluate_3d.py --run-dir runs/unet3d --split val
+python scripts/evaluate_3d.py --run-dir runs/unet3d/fold_0 --split val
 ```
 
 The evaluator reports Dice, average symmetric surface distance (ASSD), and

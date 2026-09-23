@@ -6,7 +6,21 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from evaluate_common import (
+try:
+    from evaluate_common import (
+        LARGEST_COMPONENT_POSTPROCESSING,
+        get_frame_number,
+        get_patient_id,
+        load_model,
+        patient_filter_from_config,
+        read_phase_or_unknown,
+        read_spacing_or_default,
+        save_evaluation,
+        summarize_rows,
+        volume_metrics,
+    )
+except ModuleNotFoundError:
+    from scripts.evaluate_common import (
     LARGEST_COMPONENT_POSTPROCESSING,
     get_frame_number,
     get_patient_id,
@@ -17,7 +31,7 @@ from evaluate_common import (
     save_evaluation,
     summarize_rows,
     volume_metrics,
-)
+    )
 
 
 def parse_args():
@@ -32,29 +46,38 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
-    args = parse_args()
+def evaluate_run(
+    run_dir,
+    checkpoint=None,
+    model_name="unet3d",
+    data_dir=None,
+    split="val",
+    max_volumes=None,
+    output_dir=None,
+    device=None,
+):
     model, model_name, config, checkpoint_path, device = load_model(
-        args.run_dir,
-        checkpoint=args.checkpoint,
-        model_name=args.model or "unet3d",
+        run_dir,
+        checkpoint=checkpoint,
+        model_name=model_name,
+        device=device,
     )
 
     config_args = config.get("args", {})
-    data_dir = args.data_dir or Path(config_args.get("data_dir", ""))
+    data_dir = Path(data_dir) if data_dir is not None else Path(config_args.get("data_dir", ""))
     if not data_dir:
         raise ValueError("No data directory provided and none found in run config.")
     files = sorted(data_dir.glob("*.h5"))
     if not files:
         raise FileNotFoundError(f"No .h5 files found in {data_dir}")
 
-    patient_filter = patient_filter_from_config(config, args.split)
+    patient_filter = patient_filter_from_config(config, split)
     if patient_filter is not None:
         files = [path for path in files if get_patient_id(path) in patient_filter]
-    if args.max_volumes is not None:
-        files = files[: args.max_volumes]
+    if max_volumes is not None:
+        files = files[:max_volumes]
     if not files:
-        raise RuntimeError(f"No volume files found for split={args.split} in {data_dir}")
+        raise RuntimeError(f"No volume files found for split={split} in {data_dir}")
 
     rows = []
     for path in tqdm(files, desc="evaluate 3d volumes"):
@@ -74,14 +97,14 @@ def main():
         rows.extend(volume_metrics(prediction, target, spacing, patient=patient, frame=frame, phase=phase, source=path.name))
 
     summary = summarize_rows(rows)
-    output_dir = args.output_dir or (Path(args.run_dir) / f"evaluation_3d_{args.split}")
+    output_dir = output_dir or (Path(run_dir) / f"evaluation_3d_{split}")
     metadata = {
-        "run_dir": args.run_dir,
+        "run_dir": run_dir,
         "checkpoint": checkpoint_path,
         "model": model_name,
         "postprocessing": LARGEST_COMPONENT_POSTPROCESSING,
         "data_dir": data_dir,
-        "split": args.split,
+        "split": split,
         "device": str(device),
         "volumes_evaluated": len(files),
         "distance_units": "mm",
@@ -91,6 +114,20 @@ def main():
     print(f"Saved metrics: {metrics_path}")
     print(f"Saved summary: {summary_path}")
     print(summary)
+    return rows, summary, metadata
+
+
+def main():
+    args = parse_args()
+    evaluate_run(
+        run_dir=args.run_dir,
+        checkpoint=args.checkpoint,
+        model_name=args.model or "unet3d",
+        data_dir=args.data_dir,
+        split=args.split,
+        max_volumes=args.max_volumes,
+        output_dir=args.output_dir,
+    )
 
 
 if __name__ == "__main__":

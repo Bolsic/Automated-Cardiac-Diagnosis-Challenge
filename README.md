@@ -8,7 +8,7 @@ An end-to-end PyTorch reproduction of 2D and 3D convolutional networks for segme
 
 - Recreated FCN-8, 2D U-Net, a parameter-efficient modified 2D U-Net, and an anisotropic 3D U-Net from the architecture study by [Baumgartner et al.](https://arxiv.org/abs/1709.04496).
 - Built a spacing-aware NIfTI-to-HDF5 preprocessing pipeline for both 2D and 3D training.
-- Used patient-level train/validation separation to prevent slices from the same patient leaking across splits.
+- Added diagnosis-stratified five-fold validation at patient level, with the 50 provided testing patients held out.
 - Reconstructed complete volumes before evaluating 2D predictions.
 - Evaluated foreground Dice by anatomical structure and applied   largest-connected-component post-processing.
 
@@ -56,7 +56,7 @@ pytest
 
 Download ACDC from the
 [official challenge website](https://www.creatis.insa-lyon.fr/Challenge/acdc/index.html),
-place it under `ACDC/database`, and follow
+place its `training/` and `testing/` folders under `database/`, and follow
 [`docs/REPRODUCING.md`](docs/REPRODUCING.md) for preprocessing, training, and
 evaluation commands.
 

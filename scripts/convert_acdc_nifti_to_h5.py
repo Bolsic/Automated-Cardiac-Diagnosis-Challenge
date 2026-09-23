@@ -117,11 +117,15 @@ def convert_frame(frame_path, output_root, source_root, export_slices):
 
     gt_path = frame_path.with_name(frame_path.name.replace(".nii.gz", "_gt.nii.gz"))
     image_nii, image, spacing_xyz, spacing_zyx = load_nifti_zyx(frame_path, np.float32)
+    if not np.all(np.isfinite(spacing_zyx)) or np.any(spacing_zyx <= 0):
+        raise ValueError(f"Invalid NIfTI spacing for {frame_path}: {spacing_zyx}")
     label = None
     if gt_path.exists():
         _, label, gt_spacing_xyz, _ = load_nifti_zyx(gt_path, np.uint8)
         if not np.allclose(spacing_xyz, gt_spacing_xyz):
             raise ValueError(f"Image/label spacing mismatch for {frame_path}")
+        if image.shape != label.shape:
+            raise ValueError(f"Image/label shape mismatch for {frame_path}: {image.shape} != {label.shape}")
 
     frame = frame_number(frame_path)
     phase = "ED" if info.get("ED") == str(frame) else "ES" if info.get("ES") == str(frame) else "unknown"
@@ -152,7 +156,7 @@ def convert_frame(frame_path, output_root, source_root, export_slices):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Convert ACDC NIfTI files to HDF5 while preserving spacing metadata.")
-    parser.add_argument("--input-root", type=Path, default=Path("ACDC/database"))
+    parser.add_argument("--input-root", type=Path, default=Path("database"))
     parser.add_argument("--output-root", type=Path, default=Path("outputs/acdc_h5_with_metadata"))
     parser.add_argument("--no-slices", action="store_true", help="Only write volume HDF5 files.")
     parser.add_argument("--max-patients", type=int, default=None)

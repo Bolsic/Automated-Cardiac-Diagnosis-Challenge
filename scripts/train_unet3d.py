@@ -21,6 +21,7 @@ from models import UNet3D
 from acdc_h5 import as_float_list, read_spacing_zyx
 from training_losses import add_loss_arguments, build_loss
 from training_utils import add_scheduler_arguments, build_scheduler, diagnosis_counts, split_by_patient
+from cross_validation_training import run_cross_validation
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +187,8 @@ def run_epoch(model, loader, criterion, optimizer, device, num_classes, train):
     for images, labels in tqdm(loader, desc=description, leave=False):
         images = images.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
+        if not images.is_cuda or not labels.is_cuda:
+            raise RuntimeError("Training and validation batches must reside on CUDA")
 
         if train:
             # Clear old gradients before computing this batch's gradient.
@@ -339,6 +342,11 @@ def parse_args():
         default=Path("outputs/acdc_preprocessed_3d_spacing/ACDC_training_volumes"),
     )
     parser.add_argument("--run-dir", type=Path, default=Path("runs/unet3d"))
+    parser.add_argument(
+        "--test-data-dir",
+        type=Path,
+        default=Path("outputs/acdc_preprocessed_3d_spacing/ACDC_testing_volumes"),
+    )
     parser.add_argument("--weights", type=Path, default=None, help="Optional model weights to load before training.")
 
     # Training settings. The optimizer defaults follow the paper.
@@ -361,7 +369,8 @@ def parse_args():
     parser.add_argument("--patch-width", type=int, default=None)
 
     # Validation split and reproducibility.
-    parser.add_argument("--val-fraction", type=float, default=0.2)
+    parser.add_argument("--num-folds", type=int, choices=[5], default=5)
+    parser.add_argument("--fold", type=int, choices=range(5), default=None)
     parser.add_argument("--seed", type=int, default=42)
 
     # Debug options for quick smoke tests.
@@ -384,7 +393,7 @@ def get_patch_shape(args):
 # ---------------------------------------------------------------------------
 
 
-def main():
+def legacy_main():
     args = parse_args()
     training_start_time = time.perf_counter()
     patch_shape = get_patch_shape(args)
@@ -599,6 +608,33 @@ def main():
 
     total_seconds = time.perf_counter() - training_start_time
     print(f"\nTraining finished in {format_seconds(total_seconds)} ({total_seconds:.1f} seconds)")
+
+
+def main():
+    args = parse_args()
+    patch_shape = get_patch_shape(args)
+    run_cross_validation(
+        args=args,
+        model_name="unet3d",
+        dimension=3,
+        model_factory=lambda: UNet3D(
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            base_channels=args.base_channels,
+            use_batch_norm=True,
+        ),
+        dataset_factory=lambda files, train: ACDCVolumeDataset(
+            files,
+            patch_shape=patch_shape,
+            random_patch=train and patch_shape is not None,
+        ),
+        run_epoch=run_epoch,
+        append_metrics=append_metrics,
+        save_single_epoch_checkpoint=save_single_epoch_checkpoint,
+        format_seconds=format_seconds,
+        load_starting_weights=load_starting_weights,
+        patch_shape=patch_shape,
+    )
 
 
 if __name__ == "__main__":

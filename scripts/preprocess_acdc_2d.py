@@ -6,7 +6,10 @@ import numpy as np
 from scipy.ndimage import zoom
 from tqdm import tqdm
 
-from acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
+try:
+    from acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
+except ModuleNotFoundError:
+    from scripts.acdc_h5 import SOURCE_SPACING_ATTR, TARGET_SPACING_ATTR, copy_attrs, read_spacing_zyx
 
 
 ARCHITECTURE_DEFAULTS = {
@@ -53,6 +56,10 @@ def preprocess_slice(source_path, output_path, target_height, target_width, targ
         image = source["image"][:].astype(np.float32)
         label = source["label"][:].astype(np.uint8) if "label" in source else None
         spacing_zyx = read_spacing_zyx(source)
+        if image.ndim != 2 or (label is not None and label.shape != image.shape):
+            raise ValueError(f"Expected matching 2D image/label arrays in {source_path}")
+        if spacing_zyx.shape != (3,) or not np.all(np.isfinite(spacing_zyx)) or np.any(spacing_zyx <= 0):
+            raise ValueError(f"Invalid spacing metadata in {source_path}: {spacing_zyx}")
         source_spacing_yx = spacing_zyx[1:]
 
         image = resample_in_plane(image, source_spacing_yx, target_spacing_yx, order=1)
@@ -84,7 +91,8 @@ def preprocess_slice(source_path, output_path, target_height, target_width, targ
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Create spacing-aware 2D ACDC HDF5 training slices.")
-    parser.add_argument("--input-dir", type=Path, default=Path("outputs/acdc_h5_with_metadata/ACDC_training_slices"))
+    parser.add_argument("--split", choices=["training", "testing"], default="training")
+    parser.add_argument("--input-dir", type=Path, default=None)
     parser.add_argument("--output-root", type=Path, default=Path("outputs/acdc_preprocessed_2d_spacing"))
     parser.add_argument("--architecture", choices=sorted(ARCHITECTURE_DEFAULTS), default="fcn8")
     parser.add_argument("--target-height", type=int, default=None)
@@ -100,13 +108,14 @@ def main():
     defaults = ARCHITECTURE_DEFAULTS[args.architecture]
     target_height = args.target_height or defaults["height"]
     target_width = args.target_width or defaults["width"]
-    output_dir = args.output_root / args.architecture / "ACDC_training_slices"
+    input_dir = args.input_dir or Path(f"outputs/acdc_h5_with_metadata/ACDC_{args.split}_slices")
+    output_dir = args.output_root / args.architecture / f"ACDC_{args.split}_slices"
 
-    files = sorted(args.input_dir.glob("*.h5"))
+    files = sorted(input_dir.glob("*.h5"))
     if args.max_files is not None:
         files = files[: args.max_files]
     if not files:
-        raise FileNotFoundError(f"No .h5 files found in {args.input_dir}")
+        raise FileNotFoundError(f"No .h5 files found in {input_dir}")
 
     target_spacing_yx = np.asarray([args.target_spacing_y, args.target_spacing_x], dtype=np.float32)
     for source_path in tqdm(files, desc=f"preprocess 2d {args.architecture}"):
