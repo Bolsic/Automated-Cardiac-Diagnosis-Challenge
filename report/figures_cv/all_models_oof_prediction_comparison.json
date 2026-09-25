@@ -1,0 +1,282 @@
+{
+  "selection": "middle patient by sorted ID in each fold's validation set; ED phase",
+  "layout": {
+    "rows": "validation folds 0-4",
+    "columns": [
+      "Ulazna MR slika",
+      "FCN-8",
+      "2D U-Net",
+      "Modifikovani 2D U-Net",
+      "Anizotropni 3D U-Net",
+      "Ekspertska analiza"
+    ]
+  },
+  "folds": [
+    {
+      "fold": 0,
+      "patient": 47,
+      "frame": 1,
+      "phase": "ED",
+      "input_source": "spacing-aware 2D U-Net preprocessing",
+      "models": [
+        {
+          "model": "fcn8",
+          "checkpoint": "runs\\fcn8_cv\\fold_0\\best_epoch_100.pt",
+          "foreground_dice": 0.8789793379644361,
+          "class_dice": {
+            "RV": 0.8436059416083319,
+            "Myo": 0.8365109295341854,
+            "LV": 0.956821142750791
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d",
+          "checkpoint": "runs\\unet2d_cv\\fold_0\\best_epoch_039.pt",
+          "foreground_dice": 0.9101005588938976,
+          "class_dice": {
+            "RV": 0.8998483760274519,
+            "Myo": 0.8658860063401695,
+            "LV": 0.9645672943140711
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d_modified",
+          "checkpoint": "runs\\unet2d_modified_cv\\fold_0\\best_epoch_050.pt",
+          "foreground_dice": 0.8938107924508912,
+          "class_dice": {
+            "RV": 0.8691099476439791,
+            "Myo": 0.8508301404853129,
+            "LV": 0.9614922892233817
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet3d",
+          "checkpoint": "runs\\unet3d_cv\\fold_0\\best_epoch_081.pt",
+          "foreground_dice": 0.5835994824974956,
+          "class_dice": {
+            "RV": 0.5414920368818106,
+            "Myo": 0.5924363840854773,
+            "LV": 0.616870026525199
+          },
+          "slice_index": 21
+        }
+      ]
+    },
+    {
+      "fold": 1,
+      "patient": 51,
+      "frame": 1,
+      "phase": "ED",
+      "input_source": "spacing-aware 2D U-Net preprocessing",
+      "models": [
+        {
+          "model": "fcn8",
+          "checkpoint": "runs\\fcn8_cv\\fold_1\\best_epoch_094.pt",
+          "foreground_dice": 0.9187604142533566,
+          "class_dice": {
+            "RV": 0.9491144594237377,
+            "Myo": 0.8443097643097643,
+            "LV": 0.9628570190265678
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d",
+          "checkpoint": "runs\\unet2d_cv\\fold_1\\best_epoch_025.pt",
+          "foreground_dice": 0.929565062333278,
+          "class_dice": {
+            "RV": 0.9490890295903863,
+            "Myo": 0.8715122287289011,
+            "LV": 0.9680939286805464
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d_modified",
+          "checkpoint": "runs\\unet2d_modified_cv\\fold_1\\best_epoch_044.pt",
+          "foreground_dice": 0.9203224933585666,
+          "class_dice": {
+            "RV": 0.9344407811311184,
+            "Myo": 0.857842488418266,
+            "LV": 0.9686842105263158
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet3d",
+          "checkpoint": "runs\\unet3d_cv\\fold_1\\best_epoch_097.pt",
+          "foreground_dice": 0.8932419961408072,
+          "class_dice": {
+            "RV": 0.9256842105263158,
+            "Myo": 0.8008237043816497,
+            "LV": 0.9532180735144559
+          },
+          "slice_index": 20
+        }
+      ]
+    },
+    {
+      "fold": 2,
+      "patient": 59,
+      "frame": 1,
+      "phase": "ED",
+      "input_source": "spacing-aware 2D U-Net preprocessing",
+      "models": [
+        {
+          "model": "fcn8",
+          "checkpoint": "runs\\fcn8_cv\\fold_2\\best_epoch_090.pt",
+          "foreground_dice": 0.9307192429794546,
+          "class_dice": {
+            "RV": 0.9446914952751528,
+            "Myo": 0.8836075563680682,
+            "LV": 0.9638586772951429
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet2d",
+          "checkpoint": "runs\\unet2d_cv\\fold_2\\best_epoch_039.pt",
+          "foreground_dice": 0.9390786150997781,
+          "class_dice": {
+            "RV": 0.9405072609248477,
+            "Myo": 0.9074554047873151,
+            "LV": 0.9692731795871714
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet2d_modified",
+          "checkpoint": "runs\\unet2d_modified_cv\\fold_2\\best_epoch_054.pt",
+          "foreground_dice": 0.9448800737832451,
+          "class_dice": {
+            "RV": 0.9543816710857298,
+            "Myo": 0.909410729991205,
+            "LV": 0.9708478202728003
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet3d",
+          "checkpoint": "runs\\unet3d_cv\\fold_2\\best_epoch_088.pt",
+          "foreground_dice": 0.914979401579843,
+          "class_dice": {
+            "RV": 0.910912602607436,
+            "Myo": 0.8695652173913043,
+            "LV": 0.964460384740789
+          },
+          "slice_index": 23
+        }
+      ]
+    },
+    {
+      "fold": 3,
+      "patient": 52,
+      "frame": 1,
+      "phase": "ED",
+      "input_source": "spacing-aware 2D U-Net preprocessing",
+      "models": [
+        {
+          "model": "fcn8",
+          "checkpoint": "runs\\fcn8_cv\\fold_3\\best_epoch_079.pt",
+          "foreground_dice": 0.7982754865391067,
+          "class_dice": {
+            "RV": 0.7846216880633706,
+            "Myo": 0.7153476992566106,
+            "LV": 0.894857072297339
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d",
+          "checkpoint": "runs\\unet2d_cv\\fold_3\\best_epoch_048.pt",
+          "foreground_dice": 0.8862434062556553,
+          "class_dice": {
+            "RV": 0.9047290083526973,
+            "Myo": 0.806343452650657,
+            "LV": 0.9476577577636119
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet2d_modified",
+          "checkpoint": "runs\\unet2d_modified_cv\\fold_3\\best_epoch_056.pt",
+          "foreground_dice": 0.8747193466056854,
+          "class_dice": {
+            "RV": 0.8709344346928239,
+            "Myo": 0.812177222071215,
+            "LV": 0.9410463830530175
+          },
+          "slice_index": 0
+        },
+        {
+          "model": "unet3d",
+          "checkpoint": "runs\\unet3d_cv\\fold_3\\best_epoch_073.pt",
+          "foreground_dice": 0.8714466381616264,
+          "class_dice": {
+            "RV": 0.8853941419304109,
+            "Myo": 0.8009554140127388,
+            "LV": 0.9279903585417294
+          },
+          "slice_index": 22
+        }
+      ]
+    },
+    {
+      "fold": 4,
+      "patient": 55,
+      "frame": 1,
+      "phase": "ED",
+      "input_source": "spacing-aware 2D U-Net preprocessing",
+      "models": [
+        {
+          "model": "fcn8",
+          "checkpoint": "runs\\fcn8_cv\\fold_4\\best_epoch_048.pt",
+          "foreground_dice": 0.8866678329221381,
+          "class_dice": {
+            "RV": 0.9068925305345854,
+            "Myo": 0.8261728756495645,
+            "LV": 0.9269380925822643
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet2d",
+          "checkpoint": "runs\\unet2d_cv\\fold_4\\best_epoch_039.pt",
+          "foreground_dice": 0.910108328442572,
+          "class_dice": {
+            "RV": 0.9314282225071747,
+            "Myo": 0.8595406360424028,
+            "LV": 0.9393561267781383
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet2d_modified",
+          "checkpoint": "runs\\unet2d_modified_cv\\fold_4\\best_epoch_042.pt",
+          "foreground_dice": 0.8992755485781219,
+          "class_dice": {
+            "RV": 0.9072624352643622,
+            "Myo": 0.8521588697469905,
+            "LV": 0.938405340723013
+          },
+          "slice_index": 1
+        },
+        {
+          "model": "unet3d",
+          "checkpoint": "runs\\unet3d_cv\\fold_4\\best_epoch_095.pt",
+          "foreground_dice": 0.8121387986959396,
+          "class_dice": {
+            "RV": 0.8967728589160116,
+            "Myo": 0.656695969859573,
+            "LV": 0.8829475673122343
+          },
+          "slice_index": 23
+        }
+      ]
+    }
+  ],
+  "postprocessing": "largest_connected_component_per_class"
+}
