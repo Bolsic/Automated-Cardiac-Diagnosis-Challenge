@@ -125,21 +125,46 @@ def plot_spacing_distribution(training_volumes_dir, output_dir):
         with h5py.File(paths[0], "r") as h5_file:
             spacings.append(np.asarray(h5_file.attrs["spacing_zyx"], dtype=float))
     spacing = np.stack(spacings)
-    axis_info = ((0, "Z (kroz ravan)", (5.0,)), (1, "Y (u ravni)", (1.37, 2.5)), (2, "X (u ravni)", (1.37, 2.5)))
+    axis_info = (
+        (0, "Z (kroz ravan)", ((5.0, "3D cilj: 5,0 mm", ":"),)),
+        (
+            1,
+            "Y (u ravni)",
+            (
+                (1.37, "2D cilj: 1,37 mm", "--"),
+                (2.5, "3D cilj: 2,5 mm", ":"),
+            ),
+        ),
+        (
+            2,
+            "X (u ravni)",
+            (
+                (1.37, "2D cilj: 1,37 mm", "--"),
+                (2.5, "3D cilj: 2,5 mm", ":"),
+            ),
+        ),
+    )
     fig, axes = plt.subplots(1, 3, figsize=(12, 3.7), constrained_layout=True)
     for axis, (index, label, targets) in zip(axes, axis_info):
         axis.hist(spacing[:, index], bins="auto", color="#4C78A8", edgecolor="white")
-        for target in targets:
-            style = "--" if target == 1.37 else ":"
-            axis.axvline(target, color="#D62728", linestyle=style, linewidth=1.6)
+        for target, target_label, style in targets:
+            axis.axvline(
+                target,
+                color="#D62728",
+                linestyle=style,
+                linewidth=1.6,
+                label=target_label,
+            )
         axis.set(title=label, xlabel="Razmak voksela [mm]", ylabel="Broj pacijenata")
-    fig.legend(
-        [plt.Line2D([0], [0], color="#D62728", ls="--"), plt.Line2D([0], [0], color="#D62728", ls=":")],
-        ["2D cilj: 1,37 mm", "3D cilj: 5,0 / 2,5 mm"],
-        loc="lower center",
-        ncol=2,
-        frameon=False,
-    )
+        axis.legend(
+            loc="upper center",
+            frameon=True,
+            framealpha=0.95,
+            facecolor="white",
+            edgecolor="#CCCCCC",
+            fontsize=9,
+            handlelength=3,
+        )
     save(fig, output_dir, "spacing_distribution.png")
 
 
