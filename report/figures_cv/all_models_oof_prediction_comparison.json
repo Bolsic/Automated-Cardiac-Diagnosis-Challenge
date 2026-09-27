@@ -1,7 +1,13 @@
 {
   "selection": "middle patient by sorted ID in each fold's validation set; ED phase",
   "layout": {
-    "rows": "validation folds 0-4",
+    "rows": [
+      "Presek 1",
+      "Presek 2",
+      "Presek 3",
+      "Presek 4",
+      "Presek 5"
+    ],
     "columns": [
       "Ulazna MR slika",
       "FCN-8",
@@ -14,6 +20,7 @@
   "folds": [
     {
       "fold": 0,
+      "display_label": "Presek 1",
       "patient": 47,
       "frame": 1,
       "phase": "ED",
@@ -67,6 +74,7 @@
     },
     {
       "fold": 1,
+      "display_label": "Presek 2",
       "patient": 51,
       "frame": 1,
       "phase": "ED",
@@ -120,6 +128,7 @@
     },
     {
       "fold": 2,
+      "display_label": "Presek 3",
       "patient": 59,
       "frame": 1,
       "phase": "ED",
@@ -173,6 +182,7 @@
     },
     {
       "fold": 3,
+      "display_label": "Presek 4",
       "patient": 52,
       "frame": 1,
       "phase": "ED",
@@ -226,6 +236,7 @@
     },
     {
       "fold": 4,
+      "display_label": "Presek 5",
       "patient": 55,
       "frame": 1,
       "phase": "ED",
