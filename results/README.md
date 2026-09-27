@@ -1,24 +1,50 @@
-# Curated results
+# Legacy single-split result tables
 
-This folder is the compact, machine-readable summary used by the project
-README. Full epoch histories, configurations, and per-volume rows remain in
-`runs/`.
+This directory contains compact CSV summaries from the project's earlier
+single-split experiments. They are retained for provenance and for the older
+analysis notebooks, but they are not the source of the current report's
+headline results.
 
-- `model_comparison.csv`: best selected run for each architecture
-- `loss_ablation.csv`: weighted cross-entropy versus Dice loss for the modified
-  2D U-Net
+- `model_comparison.csv` compares one selected run for each architecture.
+- `loss_ablation.csv` compares weighted cross-entropy and Dice loss for the
+  modified 2D U-Net.
 
-All Dice values are computed on 40 reconstructed validation volumes from 20
-patients.
+Those CSV values were calculated on 40 reconstructed validation volumes from
+one 20-patient split. In that earlier experiment, the modified 2D U-Net with
+weighted cross-entropy had the best selected-run Dice (`0.875`).
 
+## Current authoritative results
 
-## Training figures
+The final project uses diagnosis-stratified five-fold cross-validation. The
+standard 2D U-Net is now the strongest model:
 
-![Best validation Dice histories](../docs/assets/best_models_validation_dice.png)
+| Evaluation | Standard 2D U-Net Dice |
+|---|---:|
+| Five-fold validation, mean ± SD | **0.9025 ± 0.0064** |
+| Five-model local test ensemble | **0.9109** |
 
-Detailed dashboards:
+Current machine-readable data is stored per architecture in:
 
-- [FCN-8](../docs/assets/fcn8_training_dashboard.png)
-- [2D U-Net](../docs/assets/unet2d_training_dashboard.png)
-- [Modified 2D U-Net](../docs/assets/unet2d_modified_training_dashboard.png)
-- [Anisotropic 3D U-Net](../docs/assets/unet3d_training_dashboard.png)
+- `runs/fcn8_cv/`;
+- `runs/unet2d_cv/`;
+- `runs/unet2d_modified_cv/`; and
+- `runs/unet3d_cv/`.
+
+Each directory contains `cross_validation_metrics.csv`,
+`cross_validation_summary.json`, fold-level evaluation records, and a
+`test_ensemble/` summary. See [`runs/README.md`](../runs/README.md) for the full
+layout and [`report/izvestaj_cv.pdf`](../report/izvestaj_cv.pdf) for the final
+reported analysis.
+
+## Historical figures
+
+The following figures also belong to the earlier selected-run analysis:
+
+- [`best_models_validation_dice.png`](../docs/assets/best_models_validation_dice.png)
+- [`fcn8_training_dashboard.png`](../docs/assets/fcn8_training_dashboard.png)
+- [`unet2d_training_dashboard.png`](../docs/assets/unet2d_training_dashboard.png)
+- [`unet2d_modified_training_dashboard.png`](../docs/assets/unet2d_modified_training_dashboard.png)
+- [`unet3d_training_dashboard.png`](../docs/assets/unet3d_training_dashboard.png)
+
+Current cross-validation figures are under
+[`report/figures_cv/`](../report/figures_cv/).
